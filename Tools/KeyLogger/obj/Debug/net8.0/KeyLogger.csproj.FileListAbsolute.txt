@@ -1,0 +1,14 @@
+C:\Users\danie\Aiden D Project\Tools\KeyLogger\bin\Debug\net8.0\KeyLogger.exe
+C:\Users\danie\Aiden D Project\Tools\KeyLogger\bin\Debug\net8.0\KeyLogger.deps.json
+C:\Users\danie\Aiden D Project\Tools\KeyLogger\bin\Debug\net8.0\KeyLogger.runtimeconfig.json
+C:\Users\danie\Aiden D Project\Tools\KeyLogger\bin\Debug\net8.0\KeyLogger.dll
+C:\Users\danie\Aiden D Project\Tools\KeyLogger\bin\Debug\net8.0\KeyLogger.pdb
+C:\Users\danie\Aiden D Project\Tools\KeyLogger\obj\Debug\net8.0\KeyLogger.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\danie\Aiden D Project\Tools\KeyLogger\obj\Debug\net8.0\KeyLogger.AssemblyInfoInputs.cache
+C:\Users\danie\Aiden D Project\Tools\KeyLogger\obj\Debug\net8.0\KeyLogger.AssemblyInfo.cs
+C:\Users\danie\Aiden D Project\Tools\KeyLogger\obj\Debug\net8.0\KeyLogger.csproj.CoreCompileInputs.cache
+C:\Users\danie\Aiden D Project\Tools\KeyLogger\obj\Debug\net8.0\KeyLogger.dll
+C:\Users\danie\Aiden D Project\Tools\KeyLogger\obj\Debug\net8.0\refint\KeyLogger.dll
+C:\Users\danie\Aiden D Project\Tools\KeyLogger\obj\Debug\net8.0\KeyLogger.pdb
+C:\Users\danie\Aiden D Project\Tools\KeyLogger\obj\Debug\net8.0\KeyLogger.genruntimeconfig.cache
+C:\Users\danie\Aiden D Project\Tools\KeyLogger\obj\Debug\net8.0\ref\KeyLogger.dll
