@@ -1,11 +1,14 @@
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
 // Reactive tile grid for the level.
 //
-// Each tile starts at coolColor (white) and is permanently painted hotColor (red) the
-// first time the player steps on its cell — painted tiles never fade back, so the player
-// leaves a lasting red trail. At startup the level is populated on random, non-overlapping
+// Each tile starts on the grey frame of the tile sheet. The first time the player steps on a
+// cell it plays a short flash animation (grey -> white -> red) through the sheet's frames and
+// then stays red forever — the player leaves a lasting red trail. Painted tiles also become
+// WALLS: the player may stay on the tile it is currently on, but can never move back onto a red
+// one, so its own trail boxes it in. At startup the level is populated on random, non-overlapping
 // cells with: a start marker (player spawns here), an end marker, and animated obstacles.
 public class LevelGrid : MonoBehaviour
 {
@@ -17,8 +20,15 @@ public class LevelGrid : MonoBehaviour
     [Header("References")]
     [Tooltip("Transform that heats tiles and spawns on the start marker. Auto-finds 'Player' if empty.")]
     public Transform player;
-    [Tooltip("Base tile sprite. It is tinted between coolColor and hotColor.")]
+    [Tooltip("Fallback base tile sprite, used only if no Tile Sheet is assigned.")]
     public Sprite tileSprite;
+
+    [Header("Tiles")]
+    [Tooltip("Tile state sheet: frame 0 = grey (start); stepping on a tile plays grey -> white -> red " +
+             "through its 16x16 frames. The 224x16 sheet holds the 7-state cycle twice.")]
+    public Texture2D tileSheet;
+    [Tooltip("Seconds each frame of the step-on flash-to-red animation is shown.")]
+    public float tileAnimFrameTime = 0.06f;
 
     [Header("Markers")]
     [Tooltip("Sprite for the start cell (player spawns here).")]
@@ -46,6 +56,13 @@ public class LevelGrid : MonoBehaviour
     SpriteRenderer[,] tiles;
     Vector3 origin;
     readonly HashSet<int> usedCells = new HashSet<int>();
+    readonly HashSet<Vector2Int> obstacleCells = new HashSet<Vector2Int>(); // hazard cells = game over on contact
+
+    bool[,] painted;        // true where a tile is red — a wall the player may not re-enter
+    Vector2Int currentCell; // the cell the player currently occupies (it may stay on its own red tile)
+    Vector3 lastValidPos;   // last allowed player position; blocked moves revert to it
+    bool playerTracked;     // whether currentCell / lastValidPos have been initialised yet
+    Sprite[] tileFrames;    // grey -> white -> red frames sliced from tileSheet at runtime
 
     void Start()
     {
@@ -54,13 +71,34 @@ public class LevelGrid : MonoBehaviour
             GameObject p = GameObject.Find("Player");
             if (p != null) player = p.transform;
         }
+        BuildTileFrames();
         BuildGrid();
         PopulateLevel();
+    }
+
+    // Slice the tile sheet into the frames of one grey -> white -> red cycle. The 224x16 sheet
+    // repeats this cycle twice, so we take the first half. Built at runtime via Sprite.Create —
+    // no asset re-slicing needed.
+    void BuildTileFrames()
+    {
+        if (tileSheet == null) return;
+        int frame = tileSheet.height;        // square frames (16x16)
+        if (frame <= 0) return;
+        int total = tileSheet.width / frame; // 14
+        int n = Mathf.Max(1, total / 2);     // 7 — the sheet holds the cycle twice
+        tileFrames = new Sprite[n];
+        for (int i = 0; i < n; i++)
+            tileFrames[i] = Sprite.Create(tileSheet, new Rect(i * frame, 0f, frame, frame),
+                                          new Vector2(0.5f, 0.5f), frame);
     }
 
     void BuildGrid()
     {
         tiles = new SpriteRenderer[width, height];
+        painted = new bool[width, height];
+
+        bool useFrames = tileFrames != null && tileFrames.Length > 0;
+        Sprite baseSprite = useFrames ? tileFrames[0] : tileSprite; // grey start frame
 
         // Bottom-left cell, positioned so the grid is centred on this object's position.
         origin = transform.position
@@ -74,10 +112,10 @@ public class LevelGrid : MonoBehaviour
                 go.transform.position = CellToWorld(x, y);
 
                 SpriteRenderer sr = go.AddComponent<SpriteRenderer>();
-                sr.sprite = tileSprite;
-                sr.color = coolColor;
+                sr.sprite = baseSprite;
+                sr.color = useFrames ? Color.white : coolColor; // frames carry their own color
                 sr.sortingOrder = sortingOrder;
-                ScaleToCell(sr.transform, tileSprite, true);
+                ScaleToCell(sr.transform, baseSprite, true);
                 tiles[x, y] = sr;
             }
     }
@@ -105,6 +143,7 @@ public class LevelGrid : MonoBehaviour
             for (int i = 0; i < n; i++)
             {
                 Vector2Int c = TakeRandomFreeCell();
+                obstacleCells.Add(c); // stepping on this cell ends the game
                 GameObject obs = PlaceSprite($"Obstacle_{i}", obstacleFrames[0], c, sortingOrder + 1);
                 if (obs != null)
                 {
@@ -116,37 +155,99 @@ public class LevelGrid : MonoBehaviour
         }
     }
 
-    void Update()
-    {
-        if (tiles == null || player == null) return;
-
-        // Permanently paint the tile under the player red. Nothing ever resets a tile's
-        // color, so once stepped on it stays hotColor for the rest of the level.
-        Vector2Int c = WorldToCell(player.position);
-        if (InBounds(c)) tiles[c.x, c.y].color = hotColor;
-    }
-
-    // Runs after PlayerController.Update has moved the player: clamp it back inside the
-    // grid so it bumps the edges and can't pass through them.
+    // Runs after PlayerController.Update has moved the player. Order matters: clamp inside the
+    // grid, block movement onto red tiles, then paint the tile the player ended up on.
     void LateUpdate()
     {
-        if (!clampPlayerToGrid || player == null || tiles == null) return;
+        if (tiles == null || player == null) return;
+        if (GameOverManager.Instance != null && GameOverManager.Instance.IsGameOver) return;
 
-        float half = cellSize * 0.5f;
-        float minX = origin.x - half;
-        float maxX = origin.x + (width - 1) * cellSize + half;
-        float minY = origin.y - half;
-        float maxY = origin.y + (height - 1) * cellSize + half;
+        // First frame (and after a scene reload): latch where the player started.
+        if (!playerTracked)
+        {
+            lastValidPos = player.position;
+            currentCell = WorldToCell(player.position);
+            playerTracked = true;
+        }
 
-        // Inset by the player's half-size so its edge (not its center) bumps the border.
-        Vector3 ext = Vector3.zero;
-        SpriteRenderer sr = player.GetComponent<SpriteRenderer>();
-        if (sr != null) ext = sr.bounds.extents;
+        Vector3 now = player.position; // where PlayerController just moved the player to
 
-        Vector3 p = player.position;
-        p.x = Mathf.Clamp(p.x, minX + ext.x, maxX - ext.x);
-        p.y = Mathf.Clamp(p.y, minY + ext.y, maxY - ext.y);
-        player.position = p;
+        // 1. Keep the player inside the grid (its edge bumps the border).
+        if (clampPlayerToGrid)
+        {
+            float half = cellSize * 0.5f;
+            float minX = origin.x - half, maxX = origin.x + (width - 1) * cellSize + half;
+            float minY = origin.y - half, maxY = origin.y + (height - 1) * cellSize + half;
+            Vector3 ext = Vector3.zero;
+            SpriteRenderer psr = player.GetComponent<SpriteRenderer>();
+            if (psr != null) ext = psr.bounds.extents;
+            now.x = Mathf.Clamp(now.x, minX + ext.x, maxX - ext.x);
+            now.y = Mathf.Clamp(now.y, minY + ext.y, maxY - ext.y);
+        }
+
+        // 2. Block movement onto already-red tiles (per-axis so the player slides along them).
+        now = ResolveRedBlocking(now);
+
+        player.position = now;
+        lastValidPos = now;
+
+        // 3. Resolve the cell the player ended up in.
+        Vector2Int c = WorldToCell(now);
+        if (!InBounds(c)) return;
+        currentCell = c;
+
+        // 4. Hazard? End the game.
+        if (obstacleCells.Contains(c) && GameOverManager.Instance != null)
+        {
+            GameOverManager.Instance.TriggerGameOver();
+            return;
+        }
+
+        // 5. Paint the tile red — from now on it is a wall the player can't re-enter.
+        Paint(c);
+    }
+
+    // Per-axis movement validation: a move is allowed only if its destination cell is the one
+    // the player already occupies (so it can move freely on its own tile) or a tile that hasn't
+    // been painted red yet. Blocked axes revert to the last valid position, which lets the
+    // player slide along its trail instead of sticking to it.
+    Vector3 ResolveRedBlocking(Vector3 now)
+    {
+        Vector3 prev = lastValidPos;
+        Vector3 result = prev;
+
+        Vector2Int cx = WorldToCell(new Vector3(now.x, prev.y, prev.z));
+        if (InBounds(cx) && (cx == currentCell || !painted[cx.x, cx.y]))
+            result.x = now.x;
+
+        Vector2Int cy = WorldToCell(new Vector3(result.x, now.y, prev.z));
+        if (InBounds(cy) && (cy == currentCell || !painted[cy.x, cy.y]))
+            result.y = now.y;
+
+        result.z = now.z;
+        return result;
+    }
+
+    // Permanently paint a cell red. Idempotent — once painted it stays a wall.
+    void Paint(Vector2Int c)
+    {
+        if (!InBounds(c) || painted[c.x, c.y]) return;
+        painted[c.x, c.y] = true; // becomes a wall immediately; the flash is purely visual
+
+        if (tileFrames != null && tileFrames.Length > 1)
+            StartCoroutine(FlashToRed(tiles[c.x, c.y]));
+        else
+            tiles[c.x, c.y].color = hotColor; // fallback when no tile sheet is assigned
+    }
+
+    // Play the tile sheet's flash frames once (white -> ... -> red), then rest on the red frame.
+    IEnumerator FlashToRed(SpriteRenderer sr)
+    {
+        for (int i = 1; i < tileFrames.Length; i++)
+        {
+            sr.sprite = tileFrames[i];
+            yield return new WaitForSeconds(tileAnimFrameTime);
+        }
     }
 
     // Picks a random cell not already used, marks it used, and returns it.
