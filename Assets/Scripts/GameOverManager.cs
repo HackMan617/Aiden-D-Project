@@ -6,14 +6,16 @@ using UnityEngine.EventSystems;
 using UnityEngine.SceneManagement;
 using UnityEngine.InputSystem.UI;
 
-// Shows the game-over sequence: when the player hits a hazard, the screen freezes and the
-// game_over sprite-sheet animation loops as a full-screen overlay, with Retry / Quit buttons
-// appearing after the first pass. Also shows a small always-on Retry button in the top-left
-// corner so the player can restart at any time (e.g. if they box themselves in with red tiles).
+// Handles both end-of-game screens, built entirely in code at runtime:
+//   * GAME OVER — when the player hits a hazard: freezes, loops the game_over animation as a
+//     full-screen overlay, then shows Retry / Quit.
+//   * WIN — when the player reaches the end marker: freezes and shows the winner badge with
+//     Continue / Quit.
+// It also shows a small always-on Retry button in the top-left corner so the player can restart
+// at any time (e.g. if they box themselves in with red tiles).
 //
-// The whole UI (canvases, image, buttons, and an Input-System EventSystem) is built in
-// code at runtime so nothing has to be wired up by hand in the scene — the only thing
-// to assign in the Inspector is the game-over sheet texture.
+// The whole UI (canvases, images, buttons, and an Input-System EventSystem) is built in code,
+// so the only things to assign in the Inspector are the game-over sheet and the winner sheet.
 public class GameOverManager : MonoBehaviour
 {
     static GameOverManager _instance;
@@ -35,12 +37,18 @@ public class GameOverManager : MonoBehaviour
     [Tooltip("Playback speed of the game-over animation, in frames per second.")]
     public float fps = 8f;
 
+    [Tooltip("The Aiden D Winner Sprite Sheet texture (448x64); the first 64x64 badge is shown on win.")]
+    public Texture2D winnerSheet;
+
     public bool IsGameOver { get; private set; }
+    public bool IsWin { get; private set; }
+    public bool HasEnded => IsGameOver || IsWin; // the game has ended — lost or won
 
     Sprite[] frames;
     GameObject canvasGO;
     Image animImage;
     GameObject buttonsRow;
+    GameObject winCanvasGO;
 
     void Awake()
     {
@@ -49,6 +57,7 @@ public class GameOverManager : MonoBehaviour
         BuildFrames();
         BuildUI();
         BuildHud();
+        BuildWinUI();
     }
 
     // Slice the 448x64 sheet into `frameCount` equal frames in memory (no asset re-import).
@@ -98,12 +107,53 @@ public class GameOverManager : MonoBehaviour
         if (frames != null && frames.Length > 0) animImage.sprite = frames[0];
 
         // Retry / Quit, hidden until the animation finishes.
+        Color red = new Color(0.85f, 0.2f, 0.2f, 1f);
         buttonsRow = CreateChild("Buttons", canvasGO.transform);
         StretchFull(buttonsRow.GetComponent<RectTransform>());
-        CreateButton("RetryButton", "Retry", buttonsRow.transform, new Vector2(-160f, -210f), RetryGame);
-        CreateButton("QuitButton", "Quit", buttonsRow.transform, new Vector2(160f, -210f), QuitGame);
+        CreateButton("RetryButton", "Retry", buttonsRow.transform, new Vector2(-160f, -210f), red, RetryGame);
+        CreateButton("QuitButton", "Quit", buttonsRow.transform, new Vector2(160f, -210f), red, QuitGame);
 
         canvasGO.SetActive(false); // shown only on game over
+    }
+
+    // The win screen: a single winner badge from the winner sheet plus Continue / Quit buttons.
+    // Shown when the player reaches the end marker. Built once, hidden until then.
+    void BuildWinUI()
+    {
+        winCanvasGO = new GameObject("WinCanvas", typeof(Canvas), typeof(CanvasScaler), typeof(GraphicRaycaster));
+        var canvas = winCanvasGO.GetComponent<Canvas>();
+        canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+        canvas.sortingOrder = 100; // same layer as game over; only one shows at a time
+        var scaler = winCanvasGO.GetComponent<CanvasScaler>();
+        scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+        scaler.referenceResolution = new Vector2(1920f, 1080f);
+        scaler.matchWidthOrHeight = 0.5f;
+
+        var dim = CreateChild("Dim", winCanvasGO.transform);
+        var dimImg = dim.AddComponent<Image>();
+        dimImg.color = new Color(0f, 0f, 0f, 0.65f);
+        StretchFull(dim.GetComponent<RectTransform>());
+
+        var imgGO = CreateChild("WinnerImage", winCanvasGO.transform);
+        var winImage = imgGO.AddComponent<Image>();
+        winImage.preserveAspect = true;
+        var irt = imgGO.GetComponent<RectTransform>();
+        irt.sizeDelta = new Vector2(440f, 440f);
+        irt.anchoredPosition = new Vector2(0f, 90f);
+        // The winner sheet (448x64) is one badge repeated — use the first 64x64 cell.
+        if (winnerSheet != null)
+        {
+            float s = winnerSheet.height; // 64 -> one square badge
+            winImage.sprite = Sprite.Create(winnerSheet, new Rect(0f, 0f, s, s), new Vector2(0.5f, 0.5f), s);
+        }
+        else Debug.LogError("[GameOverManager] winnerSheet texture is not assigned.");
+
+        var row = CreateChild("WinButtons", winCanvasGO.transform);
+        StretchFull(row.GetComponent<RectTransform>());
+        CreateButton("ContinueButton", "Continue", row.transform, new Vector2(-160f, -210f), new Color(0.2f, 0.7f, 0.3f, 1f), RetryGame);
+        CreateButton("WinQuitButton", "Quit", row.transform, new Vector2(160f, -210f), new Color(0.85f, 0.2f, 0.2f, 1f), QuitGame);
+
+        winCanvasGO.SetActive(false); // shown only on win
     }
 
     // A small, always-visible "Retry" button in the top-left corner so the player can restart
@@ -147,13 +197,23 @@ public class GameOverManager : MonoBehaviour
     // Called by LevelGrid when the player steps onto a hazard cell.
     public void TriggerGameOver()
     {
-        if (IsGameOver) return;
+        if (HasEnded) return;
         IsGameOver = true;
 
         canvasGO.SetActive(true);
         buttonsRow.SetActive(false);
         Time.timeScale = 0f; // freeze the game; the coroutine uses real time so it still animates
         StartCoroutine(PlayThenPrompt());
+    }
+
+    // Called by LevelGrid when the player reaches the end marker — the maze is complete.
+    public void TriggerWin()
+    {
+        if (HasEnded) return;
+        IsWin = true;
+
+        winCanvasGO.SetActive(true); // single badge + Continue/Quit pop up immediately
+        Time.timeScale = 0f;         // freeze; the win screen is terminal until Continue/Quit
     }
 
     IEnumerator PlayThenPrompt()
@@ -216,7 +276,7 @@ public class GameOverManager : MonoBehaviour
         rt.offsetMax = Vector2.zero;
     }
 
-    static void CreateButton(string name, string label, Transform parent, Vector2 pos, UnityAction onClick)
+    static void CreateButton(string name, string label, Transform parent, Vector2 pos, Color color, UnityAction onClick)
     {
         var go = CreateChild(name, parent);
         var rt = go.GetComponent<RectTransform>();
@@ -224,7 +284,7 @@ public class GameOverManager : MonoBehaviour
         rt.anchoredPosition = pos;
 
         var img = go.AddComponent<Image>();
-        img.color = new Color(0.85f, 0.2f, 0.2f, 1f);
+        img.color = color;
         var btn = go.AddComponent<Button>();
         btn.targetGraphic = img;
         btn.onClick.AddListener(onClick);

@@ -1,0 +1,1222 @@
+fileFormatVersion: 2
+guid: 3a1891719e7f1ad409644f4b67e49926
+TextureImporter:
+  internalIDToNameTable:
+  - first:
+      213: -1986201702945218090
+    second: Aiden D Winner Sprite Sheet_0
+  - first:
+      213: -6491586463960374533
+    second: Aiden D Winner Sprite Sheet_1
+  - first:
+      213: -3325586774006757597
+    second: Aiden D Winner Sprite Sheet_2
+  - first:
+      213: 2327064104586062694
+    second: Aiden D Winner Sprite Sheet_3
+  - first:
+      213: -8003804251989400310
+    second: Aiden D Winner Sprite Sheet_4
+  - first:
+      213: 4478962356606484610
+    second: Aiden D Winner Sprite Sheet_5
+  - first:
+      213: -3181775659317569837
+    second: Aiden D Winner Sprite Sheet_6
+  - first:
+      213: 2073518091193032701
+    second: Aiden D Winner Sprite Sheet_7
+  - first:
+      213: 7483043180038568557
+    second: Aiden D Winner Sprite Sheet_8
+  - first:
+      213: -4095096039325448545
+    second: Aiden D Winner Sprite Sheet_9
+  - first:
+      213: -2897959111493170717
+    second: Aiden D Winner Sprite Sheet_10
+  - first:
+      213: -462623091313356910
+    second: Aiden D Winner Sprite Sheet_11
+  - first:
+      213: -1730210609717145525
+    second: Aiden D Winner Sprite Sheet_12
+  - first:
+      213: -2148942167668289460
+    second: Aiden D Winner Sprite Sheet_13
+  - first:
+      213: 6716713973961507953
+    second: Aiden D Winner Sprite Sheet_14
+  - first:
+      213: 318711959795007344
+    second: Aiden D Winner Sprite Sheet_15
+  - first:
+      213: 9049253755927885399
+    second: Aiden D Winner Sprite Sheet_16
+  - first:
+      213: -1533242405810833136
+    second: Aiden D Winner Sprite Sheet_17
+  - first:
+      213: -4243251603295921866
+    second: Aiden D Winner Sprite Sheet_18
+  - first:
+      213: 1626468652938443629
+    second: Aiden D Winner Sprite Sheet_19
+  - first:
+      213: 6299055236389341748
+    second: Aiden D Winner Sprite Sheet_20
+  - first:
+      213: -2842903781999189141
+    second: Aiden D Winner Sprite Sheet_21
+  - first:
+      213: 6463934661320942007
+    second: Aiden D Winner Sprite Sheet_22
+  - first:
+      213: -8152477478766268064
+    second: Aiden D Winner Sprite Sheet_23
+  - first:
+      213: -8363442107744540157
+    second: Aiden D Winner Sprite Sheet_24
+  - first:
+      213: -6565645109477802956
+    second: Aiden D Winner Sprite Sheet_25
+  - first:
+      213: 4882787946449534106
+    second: Aiden D Winner Sprite Sheet_26
+  - first:
+      213: -5574290045167118113
+    second: Aiden D Winner Sprite Sheet_27
+  - first:
+      213: 7388556241554469345
+    second: Aiden D Winner Sprite Sheet_28
+  - first:
+      213: 927448048720290297
+    second: Aiden D Winner Sprite Sheet_29
+  - first:
+      213: -198662741017875193
+    second: Aiden D Winner Sprite Sheet_30
+  - first:
+      213: -95623180388844891
+    second: Aiden D Winner Sprite Sheet_31
+  - first:
+      213: 6885917409045850292
+    second: Aiden D Winner Sprite Sheet_32
+  - first:
+      213: 1628507133209205279
+    second: Aiden D Winner Sprite Sheet_33
+  - first:
+      213: -8919857102070684058
+    second: Aiden D Winner Sprite Sheet_34
+  - first:
+      213: -747012910932112727
+    second: Aiden D Winner Sprite Sheet_35
+  - first:
+      213: 5689052590160669725
+    second: Aiden D Winner Sprite Sheet_36
+  - first:
+      213: 7374064597495608290
+    second: Aiden D Winner Sprite Sheet_37
+  - first:
+      213: 1822706361566310250
+    second: Aiden D Winner Sprite Sheet_38
+  - first:
+      213: -6000560141120226462
+    second: Aiden D Winner Sprite Sheet_39
+  - first:
+      213: -5213267581383509639
+    second: Aiden D Winner Sprite Sheet_40
+  - first:
+      213: 3359904302034763971
+    second: Aiden D Winner Sprite Sheet_41
+  externalObjects: {}
+  serializedVersion: 13
+  mipmaps:
+    mipMapMode: 0
+    enableMipMap: 0
+    sRGBTexture: 1
+    linearTexture: 0
+    fadeOut: 0
+    borderMipMap: 0
+    mipMapsPreserveCoverage: 0
+    alphaTestReferenceValue: 0.5
+    mipMapFadeDistanceStart: 1
+    mipMapFadeDistanceEnd: 3
+  bumpmap:
+    convertToNormalMap: 0
+    externalNormalMap: 0
+    heightScale: 0.25
+    normalMapFilter: 0
+    flipGreenChannel: 0
+  isReadable: 0
+  streamingMipmaps: 0
+  streamingMipmapsPriority: 0
+  vTOnly: 0
+  ignoreMipmapLimit: 0
+  grayScaleToAlpha: 0
+  generateCubemap: 6
+  cubemapConvolution: 0
+  seamlessCubemap: 0
+  textureFormat: 1
+  maxTextureSize: 2048
+  textureSettings:
+    serializedVersion: 2
+    filterMode: 1
+    aniso: 1
+    mipBias: 0
+    wrapU: 1
+    wrapV: 1
+    wrapW: 1
+  nPOTScale: 0
+  lightmap: 0
+  compressionQuality: 50
+  spriteMode: 2
+  spriteExtrude: 1
+  spriteMeshType: 1
+  alignment: 0
+  spritePivot: {x: 0.5, y: 0.5}
+  spritePixelsToUnits: 100
+  spriteBorder: {x: 0, y: 0, z: 0, w: 0}
+  spriteGenerateFallbackPhysicsShape: 1
+  alphaUsage: 1
+  alphaIsTransparency: 1
+  spriteTessellationDetail: -1
+  textureType: 8
+  textureShape: 1
+  singleChannelComponent: 0
+  flipbookRows: 1
+  flipbookColumns: 1
+  maxTextureSizeSet: 0
+  compressionQualitySet: 0
+  textureFormatSet: 0
+  ignorePngGamma: 0
+  applyGammaDecoding: 0
+  swizzle: 50462976
+  cookieLightType: 0
+  platformSettings:
+  - serializedVersion: 4
+    buildTarget: DefaultTexturePlatform
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: Standalone
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: WebGL
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  spriteSheet:
+    serializedVersion: 2
+    sprites:
+    - serializedVersion: 2
+      name: Aiden D Winner Sprite Sheet_0
+      rect:
+        serializedVersion: 2
+        x: 4
+        y: 57
+        width: 10
+        height: 6
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 6d1aca313189f64e0800000000000000
+      internalID: -1986201702945218090
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Aiden D Winner Sprite Sheet_1
+      rect:
+        serializedVersion: 2
+        x: 13
+        y: 57
+        width: 10
+        height: 6
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: bf268e2418049e5a0800000000000000
+      internalID: -6491586463960374533
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Aiden D Winner Sprite Sheet_2
+      rect:
+        serializedVersion: 2
+        x: 17
+        y: 0
+        width: 46
+        height: 63
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 3270791e27429d1d0800000000000000
+      internalID: -3325586774006757597
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Aiden D Winner Sprite Sheet_3
+      rect:
+        serializedVersion: 2
+        x: 68
+        y: 57
+        width: 10
+        height: 6
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 66b2a6b49746b4020800000000000000
+      internalID: 2327064104586062694
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Aiden D Winner Sprite Sheet_4
+      rect:
+        serializedVersion: 2
+        x: 77
+        y: 57
+        width: 10
+        height: 6
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: a0529645076cce090800000000000000
+      internalID: -8003804251989400310
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Aiden D Winner Sprite Sheet_5
+      rect:
+        serializedVersion: 2
+        x: 81
+        y: 0
+        width: 46
+        height: 63
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 28040e36888782e30800000000000000
+      internalID: 4478962356606484610
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Aiden D Winner Sprite Sheet_6
+      rect:
+        serializedVersion: 2
+        x: 132
+        y: 57
+        width: 10
+        height: 6
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 3d6546745ef08d3d0800000000000000
+      internalID: -3181775659317569837
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Aiden D Winner Sprite Sheet_7
+      rect:
+        serializedVersion: 2
+        x: 141
+        y: 57
+        width: 10
+        height: 6
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: dff18ecc7bd96cc10800000000000000
+      internalID: 2073518091193032701
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Aiden D Winner Sprite Sheet_8
+      rect:
+        serializedVersion: 2
+        x: 145
+        y: 0
+        width: 46
+        height: 64
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: d6abb19102c19d760800000000000000
+      internalID: 7483043180038568557
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Aiden D Winner Sprite Sheet_9
+      rect:
+        serializedVersion: 2
+        x: 196
+        y: 57
+        width: 10
+        height: 6
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: f96c5e659db4b27c0800000000000000
+      internalID: -4095096039325448545
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Aiden D Winner Sprite Sheet_10
+      rect:
+        serializedVersion: 2
+        x: 205
+        y: 57
+        width: 10
+        height: 6
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 3e9c7d9ca8168c7d0800000000000000
+      internalID: -2897959111493170717
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Aiden D Winner Sprite Sheet_11
+      rect:
+        serializedVersion: 2
+        x: 209
+        y: 0
+        width: 46
+        height: 63
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 29fcf51efbe6499f0800000000000000
+      internalID: -462623091313356910
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Aiden D Winner Sprite Sheet_12
+      rect:
+        serializedVersion: 2
+        x: 260
+        y: 57
+        width: 10
+        height: 6
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: b4092351e9e0df7e0800000000000000
+      internalID: -1730210609717145525
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Aiden D Winner Sprite Sheet_13
+      rect:
+        serializedVersion: 2
+        x: 269
+        y: 57
+        width: 10
+        height: 6
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: c40164deb7c6d22e0800000000000000
+      internalID: -2148942167668289460
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Aiden D Winner Sprite Sheet_14
+      rect:
+        serializedVersion: 2
+        x: 273
+        y: 0
+        width: 46
+        height: 63
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 174c0ebc5cf863d50800000000000000
+      internalID: 6716713973961507953
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Aiden D Winner Sprite Sheet_15
+      rect:
+        serializedVersion: 2
+        x: 324
+        y: 57
+        width: 10
+        height: 6
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 07fff3db6da4c6400800000000000000
+      internalID: 318711959795007344
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Aiden D Winner Sprite Sheet_16
+      rect:
+        serializedVersion: 2
+        x: 333
+        y: 57
+        width: 10
+        height: 6
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 75673749858659d70800000000000000
+      internalID: 9049253755927885399
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Aiden D Winner Sprite Sheet_17
+      rect:
+        serializedVersion: 2
+        x: 337
+        y: 0
+        width: 46
+        height: 63
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 0197417c724d8bae0800000000000000
+      internalID: -1533242405810833136
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Aiden D Winner Sprite Sheet_18
+      rect:
+        serializedVersion: 2
+        x: 388
+        y: 57
+        width: 10
+        height: 6
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 63990f40621fc15c0800000000000000
+      internalID: -4243251603295921866
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Aiden D Winner Sprite Sheet_19
+      rect:
+        serializedVersion: 2
+        x: 397
+        y: 57
+        width: 10
+        height: 6
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: d6b34b85f90629610800000000000000
+      internalID: 1626468652938443629
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Aiden D Winner Sprite Sheet_20
+      rect:
+        serializedVersion: 2
+        x: 401
+        y: 0
+        width: 46
+        height: 63
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 43a0d891d5dba6750800000000000000
+      internalID: 6299055236389341748
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Aiden D Winner Sprite Sheet_21
+      rect:
+        serializedVersion: 2
+        x: 0
+        y: 50
+        width: 8
+        height: 6
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: b63e257921afb88d0800000000000000
+      internalID: -2842903781999189141
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Aiden D Winner Sprite Sheet_22
+      rect:
+        serializedVersion: 2
+        x: 7
+        y: 50
+        width: 6
+        height: 6
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 7b1ae5bb35284b950800000000000000
+      internalID: 6463934661320942007
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Aiden D Winner Sprite Sheet_23
+      rect:
+        serializedVersion: 2
+        x: 12
+        y: 50
+        width: 6
+        height: 6
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 061b3ce3de49cde80800000000000000
+      internalID: -8152477478766268064
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Aiden D Winner Sprite Sheet_24
+      rect:
+        serializedVersion: 2
+        x: 64
+        y: 50
+        width: 8
+        height: 6
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 30aa754e6b51feb80800000000000000
+      internalID: -8363442107744540157
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Aiden D Winner Sprite Sheet_25
+      rect:
+        serializedVersion: 2
+        x: 71
+        y: 50
+        width: 6
+        height: 6
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 43c7b482f8422e4a0800000000000000
+      internalID: -6565645109477802956
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Aiden D Winner Sprite Sheet_26
+      rect:
+        serializedVersion: 2
+        x: 76
+        y: 50
+        width: 6
+        height: 6
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: a9cfea564c523c340800000000000000
+      internalID: 4882787946449534106
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Aiden D Winner Sprite Sheet_27
+      rect:
+        serializedVersion: 2
+        x: 128
+        y: 50
+        width: 8
+        height: 6
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: fd851dedcb424a2b0800000000000000
+      internalID: -5574290045167118113
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Aiden D Winner Sprite Sheet_28
+      rect:
+        serializedVersion: 2
+        x: 135
+        y: 50
+        width: 6
+        height: 6
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 1e179d461cc698660800000000000000
+      internalID: 7388556241554469345
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Aiden D Winner Sprite Sheet_29
+      rect:
+        serializedVersion: 2
+        x: 140
+        y: 50
+        width: 6
+        height: 6
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 9f12a932615fedc00800000000000000
+      internalID: 927448048720290297
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Aiden D Winner Sprite Sheet_30
+      rect:
+        serializedVersion: 2
+        x: 192
+        y: 50
+        width: 8
+        height: 6
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 70d26832a453e3df0800000000000000
+      internalID: -198662741017875193
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Aiden D Winner Sprite Sheet_31
+      rect:
+        serializedVersion: 2
+        x: 199
+        y: 50
+        width: 6
+        height: 6
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 5aa31ac59374caef0800000000000000
+      internalID: -95623180388844891
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Aiden D Winner Sprite Sheet_32
+      rect:
+        serializedVersion: 2
+        x: 204
+        y: 50
+        width: 6
+        height: 6
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 4b82bde7661bf8f50800000000000000
+      internalID: 6885917409045850292
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Aiden D Winner Sprite Sheet_33
+      rect:
+        serializedVersion: 2
+        x: 256
+        y: 50
+        width: 8
+        height: 6
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: f1adf150c9e999610800000000000000
+      internalID: 1628507133209205279
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Aiden D Winner Sprite Sheet_34
+      rect:
+        serializedVersion: 2
+        x: 263
+        y: 50
+        width: 6
+        height: 6
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 666e4df993d463480800000000000000
+      internalID: -8919857102070684058
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Aiden D Winner Sprite Sheet_35
+      rect:
+        serializedVersion: 2
+        x: 268
+        y: 50
+        width: 6
+        height: 6
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 9aac24127b312a5f0800000000000000
+      internalID: -747012910932112727
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Aiden D Winner Sprite Sheet_36
+      rect:
+        serializedVersion: 2
+        x: 320
+        y: 50
+        width: 8
+        height: 6
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: d1cea09503393fe40800000000000000
+      internalID: 5689052590160669725
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Aiden D Winner Sprite Sheet_37
+      rect:
+        serializedVersion: 2
+        x: 327
+        y: 50
+        width: 6
+        height: 6
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 2e372849ea0f55660800000000000000
+      internalID: 7374064597495608290
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Aiden D Winner Sprite Sheet_38
+      rect:
+        serializedVersion: 2
+        x: 332
+        y: 50
+        width: 6
+        height: 6
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: a6f210b57cd8b4910800000000000000
+      internalID: 1822706361566310250
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Aiden D Winner Sprite Sheet_39
+      rect:
+        serializedVersion: 2
+        x: 384
+        y: 50
+        width: 8
+        height: 6
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 26b392f085ab9bca0800000000000000
+      internalID: -6000560141120226462
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Aiden D Winner Sprite Sheet_40
+      rect:
+        serializedVersion: 2
+        x: 391
+        y: 50
+        width: 6
+        height: 6
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 979739c71c0c6a7b0800000000000000
+      internalID: -5213267581383509639
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: Aiden D Winner Sprite Sheet_41
+      rect:
+        serializedVersion: 2
+        x: 396
+        y: 50
+        width: 6
+        height: 6
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 3c0c6124927c0ae20800000000000000
+      internalID: 3359904302034763971
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    outline: []
+    customData: 
+    physicsShape: []
+    bones: []
+    spriteID: 
+    internalID: 0
+    vertices: []
+    indices: 
+    edges: []
+    weights: []
+    secondaryTextures: []
+    spriteCustomMetadata:
+      entries: []
+    nameFileIdTable:
+      Aiden D Winner Sprite Sheet_0: -1986201702945218090
+      Aiden D Winner Sprite Sheet_1: -6491586463960374533
+      Aiden D Winner Sprite Sheet_10: -2897959111493170717
+      Aiden D Winner Sprite Sheet_11: -462623091313356910
+      Aiden D Winner Sprite Sheet_12: -1730210609717145525
+      Aiden D Winner Sprite Sheet_13: -2148942167668289460
+      Aiden D Winner Sprite Sheet_14: 6716713973961507953
+      Aiden D Winner Sprite Sheet_15: 318711959795007344
+      Aiden D Winner Sprite Sheet_16: 9049253755927885399
+      Aiden D Winner Sprite Sheet_17: -1533242405810833136
+      Aiden D Winner Sprite Sheet_18: -4243251603295921866
+      Aiden D Winner Sprite Sheet_19: 1626468652938443629
+      Aiden D Winner Sprite Sheet_2: -3325586774006757597
+      Aiden D Winner Sprite Sheet_20: 6299055236389341748
+      Aiden D Winner Sprite Sheet_21: -2842903781999189141
+      Aiden D Winner Sprite Sheet_22: 6463934661320942007
+      Aiden D Winner Sprite Sheet_23: -8152477478766268064
+      Aiden D Winner Sprite Sheet_24: -8363442107744540157
+      Aiden D Winner Sprite Sheet_25: -6565645109477802956
+      Aiden D Winner Sprite Sheet_26: 4882787946449534106
+      Aiden D Winner Sprite Sheet_27: -5574290045167118113
+      Aiden D Winner Sprite Sheet_28: 7388556241554469345
+      Aiden D Winner Sprite Sheet_29: 927448048720290297
+      Aiden D Winner Sprite Sheet_3: 2327064104586062694
+      Aiden D Winner Sprite Sheet_30: -198662741017875193
+      Aiden D Winner Sprite Sheet_31: -95623180388844891
+      Aiden D Winner Sprite Sheet_32: 6885917409045850292
+      Aiden D Winner Sprite Sheet_33: 1628507133209205279
+      Aiden D Winner Sprite Sheet_34: -8919857102070684058
+      Aiden D Winner Sprite Sheet_35: -747012910932112727
+      Aiden D Winner Sprite Sheet_36: 5689052590160669725
+      Aiden D Winner Sprite Sheet_37: 7374064597495608290
+      Aiden D Winner Sprite Sheet_38: 1822706361566310250
+      Aiden D Winner Sprite Sheet_39: -6000560141120226462
+      Aiden D Winner Sprite Sheet_4: -8003804251989400310
+      Aiden D Winner Sprite Sheet_40: -5213267581383509639
+      Aiden D Winner Sprite Sheet_41: 3359904302034763971
+      Aiden D Winner Sprite Sheet_5: 4478962356606484610
+      Aiden D Winner Sprite Sheet_6: -3181775659317569837
+      Aiden D Winner Sprite Sheet_7: 2073518091193032701
+      Aiden D Winner Sprite Sheet_8: 7483043180038568557
+      Aiden D Winner Sprite Sheet_9: -4095096039325448545
+  mipmapLimitGroupName: 
+  pSDRemoveMatte: 0
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 

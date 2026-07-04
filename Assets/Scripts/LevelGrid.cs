@@ -63,6 +63,8 @@ public class LevelGrid : MonoBehaviour
     Vector3 lastValidPos;   // last allowed player position; blocked moves revert to it
     bool playerTracked;     // whether currentCell / lastValidPos have been initialised yet
     Sprite[] tileFrames;    // grey -> white -> red frames sliced from tileSheet at runtime
+    Vector2Int goalCell;    // the end-marker cell — reaching it wins the maze
+    bool hasGoal;           // whether the goal cell has been placed
 
     void Start()
     {
@@ -131,8 +133,10 @@ public class LevelGrid : MonoBehaviour
             player.position = new Vector3(s.x, s.y, player.position.z);
         }
 
-        // End marker on a different cell.
+        // End marker on a different cell — reaching it wins the maze.
         Vector2Int endCell = TakeRandomFreeCell();
+        goalCell = endCell;
+        hasGoal = true;
         PlaceSprite("EndMarker", endMarkerSprite, endCell, sortingOrder + 1);
 
         // Animated obstacles on further unique cells.
@@ -160,7 +164,7 @@ public class LevelGrid : MonoBehaviour
     void LateUpdate()
     {
         if (tiles == null || player == null) return;
-        if (GameOverManager.Instance != null && GameOverManager.Instance.IsGameOver) return;
+        if (GameOverManager.Instance != null && GameOverManager.Instance.HasEnded) return;
 
         // First frame (and after a scene reload): latch where the player started.
         if (!playerTracked)
@@ -203,7 +207,14 @@ public class LevelGrid : MonoBehaviour
             return;
         }
 
-        // 5. Paint the tile red — from now on it is a wall the player can't re-enter.
+        // 5. Reached the end marker? Win the maze.
+        if (hasGoal && c == goalCell && GameOverManager.Instance != null)
+        {
+            GameOverManager.Instance.TriggerWin();
+            return;
+        }
+
+        // 6. Paint the tile red — from now on it is a wall the player can't re-enter.
         Paint(c);
     }
 
