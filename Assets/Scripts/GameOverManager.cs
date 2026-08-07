@@ -150,7 +150,7 @@ public class GameOverManager : MonoBehaviour
 
         var row = CreateChild("WinButtons", winCanvasGO.transform);
         StretchFull(row.GetComponent<RectTransform>());
-        CreateButton("ContinueButton", "Continue", row.transform, new Vector2(-160f, -210f), new Color(0.2f, 0.7f, 0.3f, 1f), RetryGame);
+        CreateButton("ContinueButton", "Continue", row.transform, new Vector2(-160f, -210f), new Color(0.2f, 0.7f, 0.3f, 1f), ContinueGame);
         CreateButton("WinQuitButton", "Quit", row.transform, new Vector2(160f, -210f), new Color(0.85f, 0.2f, 0.2f, 1f), QuitGame);
 
         winCanvasGO.SetActive(false); // shown only on win
@@ -246,8 +246,18 @@ public class GameOverManager : MonoBehaviour
 
     void RetryGame()
     {
+        // Skip the level-select picker on the reload and drop straight back into the (current or,
+        // for Continue, advanced) level. Covers death-Retry, the always-on HUD Retry, and Continue.
+        LevelSelectManager.AutoStart = true;
         Time.timeScale = 1f; // timeScale survives scene loads, so restore it first
         SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
+    }
+
+    // Win -> Continue: advance to the next (harder) level, then reload the maze.
+    void ContinueGame()
+    {
+        GameProgress.Advance();
+        RetryGame();
     }
 
     void QuitGame()

@@ -44,6 +44,45 @@ public class LevelGrid : MonoBehaviour
     [Tooltip("Obstacle animation speed (frames per second).")]
     public float obstacleFps = 6f;
 
+    [Header("Level 2 (tighter designed arena)")]
+    [Tooltip("Grid width used for the designed level 2 (smaller than level 1 so it feels tighter).")]
+    public int level2Width = 10;
+    [Tooltip("Grid height used for the designed level 2.")]
+    public int level2Height = 6;
+    [Tooltip("Animated obstacles (the 'unnamed 2' sheet, shared with obstacleFrames) scattered " +
+             "through the designed level 2 between the start and the win tile.")]
+    public int level2ObstacleCount = 7;
+
+    [Header("Sawblades (moving hazards)")]
+    [Tooltip("The 'vertical sawblade' sheet (128x64 = 2 frames of 64x64). Leave empty to disable.")]
+    public Texture2D sawbladeSheet;
+    [Tooltip("How many equal-width frames the sawblade sheet holds.")]
+    public int sawbladeFrameCount = 2;
+    [Tooltip("Sawblade spin speed (frames per second).")]
+    public float sawbladeFps = 12f;
+    [Tooltip("Blade size in cells (uniform scale, so this also sets the width). >1 makes the thin " +
+             "vertical blade easier to see as it approaches.")]
+    public float sawbladeCellHeight = 1.5f;
+    [Tooltip("Sorting order for sawblades — above the tiles and the player so they visibly sweep over.")]
+    public int sawbladeSortingOrder = 10;
+
+    [Header("Sawblade difficulty (scales with GameProgress.CurrentLevel; level 1 = easiest)")]
+    [Tooltip("Blade travel speed at level 1 (world units/sec). Kept well below the player's speed so " +
+             "the first level's blades are easy to dodge.")]
+    public float sawbladeBaseSpeed = 1.6f;
+    [Tooltip("Extra speed added per level beyond the first.")]
+    public float sawbladeSpeedPerLevel = 0.55f;
+    [Tooltip("Speed is never faster than this.")]
+    public float sawbladeMaxSpeed = 8f;
+    [Tooltip("Seconds between blade spawns at level 1 (large = rare).")]
+    public float sawbladeBaseInterval = 5f;
+    [Tooltip("Interval shrinks by this many seconds per level (blades get more frequent).")]
+    public float sawbladeIntervalPerLevel = 0.5f;
+    [Tooltip("Interval never drops below this.")]
+    public float sawbladeMinInterval = 0.8f;
+    [Tooltip("Grace period before the very first blade of a level appears.")]
+    public float sawbladeFirstDelay = 2.5f;
+
     [Header("Look")]
     public Color coolColor = Color.white;
     [Tooltip("Color a tile is permanently painted once the player steps on it.")]
@@ -65,6 +104,7 @@ public class LevelGrid : MonoBehaviour
     Sprite[] tileFrames;    // grey -> white -> red frames sliced from tileSheet at runtime
     Vector2Int goalCell;    // the end-marker cell — reaching it wins the maze
     bool hasGoal;           // whether the goal cell has been placed
+    Sprite[] sawbladeFrames; // spin frames sliced from sawbladeSheet at runtime
 
     void Start()
     {
@@ -73,9 +113,21 @@ public class LevelGrid : MonoBehaviour
             GameObject p = GameObject.Find("Player");
             if (p != null) player = p.transform;
         }
+
+        // Level 2 is a tighter, hand-designed arena — shrink the grid before it is built so there's
+        // less room to dodge. Other levels keep the inspector-configured size.
+        if (GameProgress.CurrentLevel == 2) { width = level2Width; height = level2Height; }
+
         BuildTileFrames();
+        BuildSawbladeFrames();
         BuildGrid();
         PopulateLevel();
+
+        // Moving sawblade hazards — start the spawner if a sheet was assigned. The coroutine uses
+        // scaled WaitForSeconds, so it stays paused while the level-select freeze holds timeScale
+        // at 0 and only begins once the player actually starts the level.
+        if (sawbladeFrames != null && sawbladeFrames.Length > 0)
+            StartCoroutine(SpawnSawblades());
     }
 
     // Slice the tile sheet into the frames of one grey -> white -> red cycle. The 224x16 sheet
@@ -92,6 +144,78 @@ public class LevelGrid : MonoBehaviour
         for (int i = 0; i < n; i++)
             tileFrames[i] = Sprite.Create(tileSheet, new Rect(i * frame, 0f, frame, frame),
                                           new Vector2(0.5f, 0.5f), frame);
+    }
+
+    // Slice the sawblade sheet into its equal-width spin frames (128x64 -> 2 x 64x64).
+    void BuildSawbladeFrames()
+    {
+        if (sawbladeSheet == null) return;
+        int n = Mathf.Max(1, sawbladeFrameCount);
+        float fw = sawbladeSheet.width / (float)n;
+        float fh = sawbladeSheet.height;
+        if (fw <= 0f || fh <= 0f) return;
+        sawbladeFrames = new Sprite[n];
+        for (int i = 0; i < n; i++)
+            sawbladeFrames[i] = Sprite.Create(sawbladeSheet, new Rect(i * fw, 0f, fw, fh),
+                                              new Vector2(0.5f, 0.5f), fh);
+    }
+
+    // Continuously spawns sawblades that sweep left -> right across random rows. Speed and spawn
+    // frequency both scale with the current level, so level 1 gets a rare, slow blade and later
+    // levels get fast, frequent ones. WaitForSeconds is scaled time, so this naturally pauses with
+    // the game (level-select freeze, pause menu, game-over / win).
+    IEnumerator SpawnSawblades()
+    {
+        int level = Mathf.Max(1, GameProgress.CurrentLevel);
+        float speed = Mathf.Min(sawbladeMaxSpeed, sawbladeBaseSpeed + (level - 1) * sawbladeSpeedPerLevel);
+        float interval = Mathf.Max(sawbladeMinInterval, sawbladeBaseInterval - (level - 1) * sawbladeIntervalPerLevel);
+
+        yield return new WaitForSeconds(sawbladeFirstDelay);
+        while (true)
+        {
+            if (GameOverManager.Instance == null || !GameOverManager.Instance.HasEnded)
+                SpawnOneSawblade(speed);
+            yield return new WaitForSeconds(interval);
+        }
+    }
+
+    // Spawn a single blade just off the left edge on a random row, moving right past the far edge.
+    void SpawnOneSawblade(float speed)
+    {
+        if (sawbladeFrames == null || sawbladeFrames.Length == 0) return;
+
+        int row = Random.Range(0, height);
+        float y = origin.y + row * cellSize;
+        float startX = origin.x - cellSize;         // just off the left edge
+        float endX = origin.x + width * cellSize;   // just past the right edge
+
+        GameObject go = new GameObject("Sawblade");
+        go.transform.SetParent(transform, false);
+        go.transform.position = new Vector3(startX, y, 0f);
+
+        SpriteRenderer sr = go.AddComponent<SpriteRenderer>();
+        sr.sprite = sawbladeFrames[0];
+        sr.color = Color.white;
+        sr.sortingOrder = sawbladeSortingOrder;
+
+        // Scale the blade to sawbladeCellHeight cells tall (uniform, keeps its aspect).
+        Vector2 size = sawbladeFrames[0].bounds.size;
+        if (size.y > 0f)
+        {
+            float k = (cellSize * sawbladeCellHeight) / size.y;
+            go.transform.localScale = new Vector3(k, k, 1f);
+        }
+
+        SpriteFlipbook flip = go.AddComponent<SpriteFlipbook>();
+        flip.frames = sawbladeFrames;
+        flip.fps = sawbladeFps;
+
+        Sawblade saw = go.AddComponent<Sawblade>();
+        saw.speed = speed;
+        saw.destroyX = endX;
+        saw.target = player;
+        saw.hitHalfX = 0.22f * cellSize;
+        saw.hitHalfY = 0.45f * cellSize * sawbladeCellHeight;
     }
 
     void BuildGrid()
@@ -124,6 +248,17 @@ public class LevelGrid : MonoBehaviour
 
     void PopulateLevel()
     {
+        // Level 2 is a hand-designed layout (see the "level 2 concept" art) rather than a random
+        // one: the player starts in the bottom-right corner and must reach the win tile in the
+        // top-left, dodging the sweeping sawblades (which are faster/more frequent than level 1 via
+        // the per-level difficulty scaling in SpawnSawblades). All other levels stay procedural.
+        if (GameProgress.CurrentLevel == 2)
+        {
+            PopulateDesignedLevel(startCell: new Vector2Int(width - 1, 0),
+                                  endCell:   new Vector2Int(0, height - 1));
+            return;
+        }
+
         // Start marker + player spawn.
         Vector2Int startCell = TakeRandomFreeCell();
         PlaceSprite("StartMarker", startMarkerSprite, startCell, sortingOrder + 1);
@@ -140,23 +275,78 @@ public class LevelGrid : MonoBehaviour
         PlaceSprite("EndMarker", endMarkerSprite, endCell, sortingOrder + 1);
 
         // Animated obstacles on further unique cells.
-        if (obstacleFrames != null && obstacleFrames.Length > 0)
+        SpawnObstacles(obstacleCount);
+    }
+
+    // Scatters up to `count` animated obstacles on random free cells. Each is a hazard cell
+    // (stepping on it ends the game) that cycles the obstacleFrames sheet via a SpriteFlipbook.
+    // Shared by the procedural levels and the designed level 2.
+    void SpawnObstacles(int count)
+    {
+        if (obstacleFrames == null || obstacleFrames.Length == 0) return;
+
+        int free = width * height - usedCells.Count;
+        int n = Mathf.Clamp(count, 0, free);
+        for (int i = 0; i < n; i++)
         {
-            int free = width * height - usedCells.Count;
-            int n = Mathf.Clamp(obstacleCount, 0, free);
-            for (int i = 0; i < n; i++)
+            Vector2Int c = TakeRandomFreeCell();
+            obstacleCells.Add(c); // stepping on this cell ends the game
+            GameObject obs = PlaceSprite($"Obstacle_{i}", obstacleFrames[0], c, sortingOrder + 1);
+            if (obs != null)
             {
-                Vector2Int c = TakeRandomFreeCell();
-                obstacleCells.Add(c); // stepping on this cell ends the game
-                GameObject obs = PlaceSprite($"Obstacle_{i}", obstacleFrames[0], c, sortingOrder + 1);
-                if (obs != null)
-                {
-                    SpriteFlipbook flip = obs.AddComponent<SpriteFlipbook>();
-                    flip.frames = obstacleFrames;
-                    flip.fps = obstacleFps;
-                }
+                SpriteFlipbook flip = obs.AddComponent<SpriteFlipbook>();
+                flip.frames = obstacleFrames;
+                flip.fps = obstacleFps;
             }
         }
+    }
+
+    // Places the start marker (and spawns the player on it) at the bottom-right and the win-tile end
+    // marker at the top-left for the hand-designed level 2, then scatters animated obstacles between
+    // them. Obstacles are hazard cells (deadly to touch) rather than walls, so the corner-to-corner
+    // route always stays open. The tile-painting, flash-to-red trail, and sprite animation all
+    // behave exactly as in the procedural levels — this only fixes WHERE start/goal sit and adds the
+    // obstacles; it doesn't change how the grid works.
+    void PopulateDesignedLevel(Vector2Int startCell, Vector2Int endCell)
+    {
+        // Reserve both cells so nothing else lands on them, plus the cells directly next to them so
+        // a random obstacle can never seal the player into the start corner or block the win tile.
+        usedCells.Add(startCell.x * height + startCell.y);
+        usedCells.Add(endCell.x * height + endCell.y);
+        ReserveNeighbors(startCell);
+        ReserveNeighbors(endCell);
+
+        PlaceSprite("StartMarker", startMarkerSprite, startCell, sortingOrder + 1);
+        if (player != null)
+        {
+            Vector3 s = CellToWorld(startCell.x, startCell.y);
+            player.position = new Vector3(s.x, s.y, player.position.z);
+        }
+
+        goalCell = endCell;
+        hasGoal = true;
+        // endMarkerSprite is the "win tile" art (assigned in the scene), so the goal shows the win tile.
+        PlaceSprite("EndMarker", endMarkerSprite, endCell, sortingOrder + 1);
+
+        // Additional animated obstacles (the "unnamed 2" dome sheet) scattered between the corners.
+        // They're hazard cells, not walls, so the bottom-right -> top-left route always stays open;
+        // combined with the tighter grid and the faster sweeping blades they make level 2 harder.
+        SpawnObstacles(level2ObstacleCount);
+    }
+
+    // Marks the four orthogonal neighbours of a cell as used (in-bounds only) so obstacle placement
+    // skips them — used to keep the immediate area around the start and goal clear.
+    void ReserveNeighbors(Vector2Int c)
+    {
+        ReserveCell(new Vector2Int(c.x + 1, c.y));
+        ReserveCell(new Vector2Int(c.x - 1, c.y));
+        ReserveCell(new Vector2Int(c.x, c.y + 1));
+        ReserveCell(new Vector2Int(c.x, c.y - 1));
+    }
+
+    void ReserveCell(Vector2Int c)
+    {
+        if (InBounds(c)) usedCells.Add(c.x * height + c.y);
     }
 
     // Runs after PlayerController.Update has moved the player. Order matters: clamp inside the
