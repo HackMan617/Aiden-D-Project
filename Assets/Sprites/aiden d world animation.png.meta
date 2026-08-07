@@ -1,0 +1,702 @@
+fileFormatVersion: 2
+guid: 59dd6aa7f12f13748ab2d9109a630c4c
+TextureImporter:
+  internalIDToNameTable:
+  - first:
+      213: 3805987697788383291
+    second: aiden d world animation_0
+  - first:
+      213: 6512069541291097937
+    second: aiden d world animation_1
+  - first:
+      213: -7751207074962511923
+    second: aiden d world animation_2
+  - first:
+      213: -3023862470686822557
+    second: aiden d world animation_3
+  - first:
+      213: 6700673054295514169
+    second: aiden d world animation_4
+  - first:
+      213: -3040756295696985319
+    second: aiden d world animation_5
+  - first:
+      213: 8277661394625545888
+    second: aiden d world animation_6
+  - first:
+      213: -2103716480026191351
+    second: aiden d world animation_7
+  - first:
+      213: 8392428068727030191
+    second: aiden d world animation_8
+  - first:
+      213: -489440130923977755
+    second: aiden d world animation_9
+  - first:
+      213: -3946799300820788383
+    second: aiden d world animation_10
+  - first:
+      213: 3821691504429816804
+    second: aiden d world animation_11
+  - first:
+      213: -223536493464768174
+    second: aiden d world animation_12
+  - first:
+      213: 6276239708172655310
+    second: aiden d world animation_13
+  - first:
+      213: 1901571100414987273
+    second: aiden d world animation_14
+  - first:
+      213: -457491083186099420
+    second: aiden d world animation_15
+  - first:
+      213: -3230833356913910857
+    second: aiden d world animation_16
+  - first:
+      213: -7297486091920073386
+    second: aiden d world animation_17
+  - first:
+      213: -3756866948678736739
+    second: aiden d world animation_18
+  - first:
+      213: 1384511140651588764
+    second: aiden d world animation_19
+  - first:
+      213: -8222506614536251911
+    second: aiden d world animation_20
+  - first:
+      213: 3215498072800584190
+    second: aiden d world animation_21
+  externalObjects: {}
+  serializedVersion: 13
+  mipmaps:
+    mipMapMode: 0
+    enableMipMap: 0
+    sRGBTexture: 1
+    linearTexture: 0
+    fadeOut: 0
+    borderMipMap: 0
+    mipMapsPreserveCoverage: 0
+    alphaTestReferenceValue: 0.5
+    mipMapFadeDistanceStart: 1
+    mipMapFadeDistanceEnd: 3
+  bumpmap:
+    convertToNormalMap: 0
+    externalNormalMap: 0
+    heightScale: 0.25
+    normalMapFilter: 0
+    flipGreenChannel: 0
+  isReadable: 0
+  streamingMipmaps: 0
+  streamingMipmapsPriority: 0
+  vTOnly: 0
+  ignoreMipmapLimit: 0
+  grayScaleToAlpha: 0
+  generateCubemap: 6
+  cubemapConvolution: 0
+  seamlessCubemap: 0
+  textureFormat: 1
+  maxTextureSize: 2048
+  textureSettings:
+    serializedVersion: 2
+    filterMode: 0
+    aniso: 1
+    mipBias: 0
+    wrapU: 1
+    wrapV: 1
+    wrapW: 1
+  nPOTScale: 0
+  lightmap: 0
+  compressionQuality: 50
+  spriteMode: 2
+  spriteExtrude: 1
+  spriteMeshType: 1
+  alignment: 0
+  spritePivot: {x: 0.5, y: 0.5}
+  spritePixelsToUnits: 100
+  spriteBorder: {x: 0, y: 0, z: 0, w: 0}
+  spriteGenerateFallbackPhysicsShape: 1
+  alphaUsage: 1
+  alphaIsTransparency: 1
+  spriteTessellationDetail: -1
+  textureType: 8
+  textureShape: 1
+  singleChannelComponent: 0
+  flipbookRows: 1
+  flipbookColumns: 1
+  maxTextureSizeSet: 0
+  compressionQualitySet: 0
+  textureFormatSet: 0
+  ignorePngGamma: 0
+  applyGammaDecoding: 0
+  swizzle: 50462976
+  cookieLightType: 0
+  platformSettings:
+  - serializedVersion: 4
+    buildTarget: DefaultTexturePlatform
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: Standalone
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: WebGL
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  spriteSheet:
+    serializedVersion: 2
+    sprites:
+    - serializedVersion: 2
+      name: aiden d world animation_0
+      rect:
+        serializedVersion: 2
+        x: 1
+        y: 25
+        width: 30
+        height: 24
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: b30fe2a65a591d430800000000000000
+      internalID: 3805987697788383291
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: aiden d world animation_1
+      rect:
+        serializedVersion: 2
+        x: 30
+        y: 25
+        width: 27
+        height: 26
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 15ffb41deb48f5a50800000000000000
+      internalID: 6512069541291097937
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: aiden d world animation_2
+      rect:
+        serializedVersion: 2
+        x: 65
+        y: 23
+        width: 30
+        height: 24
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: dc76d54ab3e2e6490800000000000000
+      internalID: -7751207074962511923
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: aiden d world animation_3
+      rect:
+        serializedVersion: 2
+        x: 94
+        y: 23
+        width: 27
+        height: 26
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 36fa311aa151906d0800000000000000
+      internalID: -3023862470686822557
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: aiden d world animation_4
+      rect:
+        serializedVersion: 2
+        x: 129
+        y: 22
+        width: 30
+        height: 24
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 93cd05524a29dfc50800000000000000
+      internalID: 6700673054295514169
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: aiden d world animation_5
+      rect:
+        serializedVersion: 2
+        x: 158
+        y: 22
+        width: 27
+        height: 26
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 913d27a72401dc5d0800000000000000
+      internalID: -3040756295696985319
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: aiden d world animation_6
+      rect:
+        serializedVersion: 2
+        x: 193
+        y: 21
+        width: 30
+        height: 24
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 0a6ce957e2920e270800000000000000
+      internalID: 8277661394625545888
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: aiden d world animation_7
+      rect:
+        serializedVersion: 2
+        x: 222
+        y: 21
+        width: 27
+        height: 26
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 90a57e3e1091ec2e0800000000000000
+      internalID: -2103716480026191351
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: aiden d world animation_8
+      rect:
+        serializedVersion: 2
+        x: 257
+        y: 20
+        width: 30
+        height: 24
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: fa10e7f0dd4e77470800000000000000
+      internalID: 8392428068727030191
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: aiden d world animation_9
+      rect:
+        serializedVersion: 2
+        x: 286
+        y: 20
+        width: 27
+        height: 26
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 5e3a4794bc82539f0800000000000000
+      internalID: -489440130923977755
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: aiden d world animation_10
+      rect:
+        serializedVersion: 2
+        x: 321
+        y: 21
+        width: 30
+        height: 24
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 16b11da62f62a39c0800000000000000
+      internalID: -3946799300820788383
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: aiden d world animation_11
+      rect:
+        serializedVersion: 2
+        x: 350
+        y: 21
+        width: 27
+        height: 26
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 4ebdaa2dc20690530800000000000000
+      internalID: 3821691504429816804
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: aiden d world animation_12
+      rect:
+        serializedVersion: 2
+        x: 385
+        y: 21
+        width: 30
+        height: 24
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 25132b85eb6d5ecf0800000000000000
+      internalID: -223536493464768174
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: aiden d world animation_13
+      rect:
+        serializedVersion: 2
+        x: 414
+        y: 21
+        width: 27
+        height: 26
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: eca15daf2cea91750800000000000000
+      internalID: 6276239708172655310
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: aiden d world animation_14
+      rect:
+        serializedVersion: 2
+        x: 449
+        y: 22
+        width: 30
+        height: 24
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 90c426347dcb36a10800000000000000
+      internalID: 1901571100414987273
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: aiden d world animation_15
+      rect:
+        serializedVersion: 2
+        x: 478
+        y: 22
+        width: 27
+        height: 26
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 42ba8c2a84aa6a9f0800000000000000
+      internalID: -457491083186099420
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: aiden d world animation_16
+      rect:
+        serializedVersion: 2
+        x: 513
+        y: 23
+        width: 30
+        height: 24
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 7bbd9a8fd26c923d0800000000000000
+      internalID: -3230833356913910857
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: aiden d world animation_17
+      rect:
+        serializedVersion: 2
+        x: 542
+        y: 23
+        width: 27
+        height: 26
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 65d10c9201f1aba90800000000000000
+      internalID: -7297486091920073386
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: aiden d world animation_18
+      rect:
+        serializedVersion: 2
+        x: 577
+        y: 25
+        width: 30
+        height: 24
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: d9429973a6decdbc0800000000000000
+      internalID: -3756866948678736739
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: aiden d world animation_19
+      rect:
+        serializedVersion: 2
+        x: 606
+        y: 25
+        width: 27
+        height: 26
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: c9cdb160c85c63310800000000000000
+      internalID: 1384511140651588764
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: aiden d world animation_20
+      rect:
+        serializedVersion: 2
+        x: 641
+        y: 26
+        width: 30
+        height: 24
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 9f5544d7cc9c3ed80800000000000000
+      internalID: -8222506614536251911
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: aiden d world animation_21
+      rect:
+        serializedVersion: 2
+        x: 670
+        y: 26
+        width: 27
+        height: 26
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: ef16b35f57ebf9c20800000000000000
+      internalID: 3215498072800584190
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    outline: []
+    customData: 
+    physicsShape: []
+    bones: []
+    spriteID: 
+    internalID: 0
+    vertices: []
+    indices: 
+    edges: []
+    weights: []
+    secondaryTextures: []
+    spriteCustomMetadata:
+      entries: []
+    nameFileIdTable:
+      aiden d world animation_0: 3805987697788383291
+      aiden d world animation_1: 6512069541291097937
+      aiden d world animation_10: -3946799300820788383
+      aiden d world animation_11: 3821691504429816804
+      aiden d world animation_12: -223536493464768174
+      aiden d world animation_13: 6276239708172655310
+      aiden d world animation_14: 1901571100414987273
+      aiden d world animation_15: -457491083186099420
+      aiden d world animation_16: -3230833356913910857
+      aiden d world animation_17: -7297486091920073386
+      aiden d world animation_18: -3756866948678736739
+      aiden d world animation_19: 1384511140651588764
+      aiden d world animation_2: -7751207074962511923
+      aiden d world animation_20: -8222506614536251911
+      aiden d world animation_21: 3215498072800584190
+      aiden d world animation_3: -3023862470686822557
+      aiden d world animation_4: 6700673054295514169
+      aiden d world animation_5: -3040756295696985319
+      aiden d world animation_6: 8277661394625545888
+      aiden d world animation_7: -2103716480026191351
+      aiden d world animation_8: 8392428068727030191
+      aiden d world animation_9: -489440130923977755
+  mipmapLimitGroupName: 
+  pSDRemoveMatte: 0
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 

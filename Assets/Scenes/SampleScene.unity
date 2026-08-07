@@ -149,8 +149,12 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::LevelSelectManager
   selectionSheet: {fileID: 2800000, guid: 55887a4b0b17d4a4aa04f5c33b1b72e7, type: 3}
+  worldAnimationSheet: {fileID: 2800000, guid: 59dd6aa7f12f13748ab2d9109a630c4c, type: 3}
+  worldNumberSheet: {fileID: 2800000, guid: a79336cd464025046a82ce7cddfc2920, type: 3}
+  titleFps: 12
   levelCount: 10
   columns: 5
+  startLevelSound: {fileID: 8300000, guid: 9c09d09147f745afb0b5b19cb189e491, type: 3}
 --- !u!4 &320028243
 Transform:
   m_ObjectHideFlags: 0
@@ -203,7 +207,7 @@ MonoBehaviour:
   tileSheet: {fileID: 2800000, guid: 41da57ddeb33a3942b7d1f6a46afc981, type: 3}
   tileAnimFrameTime: 0.06
   startMarkerSprite: {fileID: -3157726242096756337, guid: ead2a5effd281d74f97a247ad2f463b0, type: 3}
-  endMarkerSprite: {fileID: -3157726242096756337, guid: ead2a5effd281d74f97a247ad2f463b0, type: 3}
+  endMarkerSprite: {fileID: 21300000, guid: d18217bd607666443b57bbc2ff976061, type: 3}
   obstacleFrames:
   - {fileID: -9077267681977876436, guid: cb631186ef53b4846a611d0d88b7cd96, type: 3}
   - {fileID: -3413213264853777820, guid: cb631186ef53b4846a611d0d88b7cd96, type: 3}
@@ -211,6 +215,7 @@ MonoBehaviour:
   - {fileID: 3592431593772322388, guid: cb631186ef53b4846a611d0d88b7cd96, type: 3}
   obstacleCount: 6
   obstacleFps: 6
+  sawbladeSheet: {fileID: 2800000, guid: ba291bc8753bb6642ab9f5a2395d9b7c, type: 3}
   coolColor: {r: 1, g: 1, b: 1, a: 1}
   hotColor: {r: 0.95, g: 0.15, b: 0.15, a: 1}
   sortingOrder: -10
