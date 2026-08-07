@@ -53,6 +53,7 @@ public class PauseMenu : MonoBehaviour
         if (canvasGO == null) BuildUI(); // heal if the overlay was never built or got wiped
         paused = true;
         Time.timeScale = 0f;
+        MusicManager.PlayPauseMusic(); // swap gameplay music for the pause-menu track
         ShowMain();
         if (volumeSlider != null) volumeSlider.SetValueWithoutNotify(AudioListener.volume);
         if (fullscreenToggle != null) fullscreenToggle.SetIsOnWithoutNotify(Screen.fullScreen);
@@ -63,6 +64,7 @@ public class PauseMenu : MonoBehaviour
     {
         paused = false;
         Time.timeScale = 1f;
+        MusicManager.StopPauseMusic(); // resume the gameplay track where it left off
         if (canvasGO != null) canvasGO.SetActive(false);
     }
 
@@ -71,6 +73,7 @@ public class PauseMenu : MonoBehaviour
 
     void GoMainMenu()
     {
+        // MainMenu.Start switches to the menu track (and clears the pause overlay) on the next scene.
         Time.timeScale = 1f;
         SceneManager.LoadScene(mainMenuSceneName);
     }
@@ -118,6 +121,7 @@ public class PauseMenu : MonoBehaviour
         Label(optionsPanel.transform, "Volume", new Vector2(-260f, 100f), new Vector2(240f, 50f), 34, Color.white, TextAnchor.MiddleLeft);
         volumeSlider = MakeSlider(optionsPanel.transform, new Vector2(90f, 100f));
         volumeSlider.onValueChanged.AddListener(v => AudioListener.volume = v);
+        MakeMuteButton(optionsPanel.transform, new Vector2(350f, 100f)); // just right of the slider
         fullscreenToggle = MakeToggle(optionsPanel.transform, new Vector2(-90f, 0f), "Fullscreen");
         fullscreenToggle.onValueChanged.AddListener(f => Screen.fullScreen = f);
         Btn(optionsPanel.transform, "Back", new Vector2(0f, -170f), ShowMain);
@@ -134,6 +138,18 @@ public class PauseMenu : MonoBehaviour
         var s = go.GetComponent<Slider>();
         s.minValue = 0f; s.maxValue = 1f; s.value = 1f;
         return s;
+    }
+
+    // Mute toggle for the in-game pause menu, sitting next to the volume slider. MuteButton is
+    // self-contained: it loads its own sprite frames and shares the same saved mute state as the
+    // main-menu button, so toggling here stays in sync with the rest of the game.
+    void MakeMuteButton(Transform parent, Vector2 pos)
+    {
+        var go = new GameObject("MuteButton",
+            typeof(RectTransform), typeof(CanvasRenderer), typeof(Image), typeof(Button), typeof(MuteButton));
+        go.transform.SetParent(parent, false);
+        RT(go, pos, new Vector2(80f, 80f));
+        go.GetComponent<Image>().preserveAspect = true;
     }
 
     Toggle MakeToggle(Transform parent, Vector2 pos, string label)
