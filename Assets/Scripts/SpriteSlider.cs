@@ -29,10 +29,10 @@ public class SpriteSlider : MonoBehaviour
     [SerializeField] private Sprite handleSprite;
 
     [Header("Size")]
-    [Tooltip("On-screen height of the track, in reference pixels. 12 = an exact 2x of the 6px source bar.")]
-    [SerializeField] private float trackHeight = 12f;
-    [Tooltip("On-screen size of the handle. 26 = an exact 2x of the 13px source knob.")]
-    [SerializeField] private float handleSize = 26f;
+    [Tooltip("On-screen height of the track, in reference pixels. 18 = an exact 3x of the 6px source bar.")]
+    [SerializeField] private float trackHeight = 18f;
+    [Tooltip("On-screen size of the handle. 39 = an exact 3x of the 13px source knob.")]
+    [SerializeField] private float handleSize = 39f;
     [Tooltip("Hide the default fill bar. The artwork is a plain track plus a knob with no fill graphic, " +
              "so a leftover fill would draw a coloured block over it.")]
     [SerializeField] private bool hideFill = true;

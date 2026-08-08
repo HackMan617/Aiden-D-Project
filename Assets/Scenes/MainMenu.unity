@@ -483,7 +483,7 @@ RectTransform:
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
   m_AnchoredPosition: {x: 90, y: 120}
-  m_SizeDelta: {x: 360, y: 30}
+  m_SizeDelta: {x: 480, y: 48}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &255661319
 MonoBehaviour:
@@ -551,8 +551,8 @@ MonoBehaviour:
   spriteSheet: volume slider
   trackSprite: {fileID: 0}
   handleSprite: {fileID: 0}
-  trackHeight: 12
-  handleSize: 26
+  trackHeight: 18
+  handleSize: 39
   hideFill: 1
 --- !u!1 &296111664
 GameObject:

@@ -147,9 +147,11 @@ public class PauseMenu : MonoBehaviour
         Stretch(optionsPanel);
         Label(optionsPanel.transform, "OPTIONS", new Vector2(0f, 280f), new Vector2(800f, 110f), 72, Color.white, TextAnchor.MiddleCenter);
         Label(optionsPanel.transform, "Volume", new Vector2(-260f, 100f), new Vector2(240f, 50f), 34, Color.white, TextAnchor.MiddleLeft);
-        volumeSlider = MakeSlider(optionsPanel.transform, new Vector2(90f, 100f));
+        // The slider sits between the "Volume" label (which ends at -140) and the mute button, and
+        // is centred at 150 so its wider body grows to the right rather than over the label.
+        volumeSlider = MakeSlider(optionsPanel.transform, new Vector2(150f, 100f));
         volumeSlider.onValueChanged.AddListener(v => AudioListener.volume = v);
-        MakeMuteButton(optionsPanel.transform, new Vector2(350f, 100f)); // just right of the slider
+        MakeMuteButton(optionsPanel.transform, new Vector2(470f, 100f)); // just right of the slider
         fullscreenToggle = MakeToggle(optionsPanel.transform, new Vector2(-90f, 0f), "Fullscreen");
         fullscreenToggle.onValueChanged.AddListener(f => Screen.fullScreen = f);
         Btn(optionsPanel.transform, "Back", new Vector2(0f, -170f), ShowMain);
@@ -162,7 +164,7 @@ public class PauseMenu : MonoBehaviour
         var go = DefaultControls.CreateSlider(new DefaultControls.Resources());
         go.name = "PauseVolumeSlider";
         go.transform.SetParent(parent, false);
-        RT(go, pos, new Vector2(360f, 26f));
+        RT(go, pos, VolumeSliderSize);
         var s = go.GetComponent<Slider>();
         s.minValue = 0f; s.maxValue = 1f; s.value = 1f;
         go.AddComponent<SpriteSlider>().Configure(VolumeSliderSheet); // track + knob artwork
@@ -229,6 +231,9 @@ public class PauseMenu : MonoBehaviour
     const string PlayButtonSheet = "play button";
     const string PauseButtonSheet = "pause button";
     const string VolumeSliderSheet = "volume slider";
+    // Body of the volume slider. Wide and tall enough that the 3x-scaled track and knob have room
+    // and the control is comfortable to grab with the mouse.
+    static readonly Vector2 VolumeSliderSize = new Vector2(480f, 48f);
 
     // On-screen height of an artwork button; the width follows from the frame's own aspect so the
     // pixel art is never stretched.
