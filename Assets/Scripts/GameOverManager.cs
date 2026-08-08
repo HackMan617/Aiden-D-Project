@@ -54,6 +54,11 @@ public class GameOverManager : MonoBehaviour
     {
         if (_instance != null && _instance != this) { Destroy(gameObject); return; }
         _instance = this;
+
+        // The level editor shares this scene and there is no run to lose or win there, so none of
+        // these overlays (nor the always-on HUD retry button) should be built.
+        if (GameSession.IsEditing) { enabled = false; return; }
+
         BuildFrames();
         BuildUI();
         BuildHud();
@@ -106,12 +111,13 @@ public class GameOverManager : MonoBehaviour
         irt.anchoredPosition = new Vector2(0f, 90f);
         if (frames != null && frames.Length > 0) animImage.sprite = frames[0];
 
-        // Retry / Quit, hidden until the animation finishes.
+        // Retry / Quit, hidden until the animation finishes. Quit is the artwork button; Retry has
+        // no artwork of its own, so it stays a labelled box.
         Color red = new Color(0.85f, 0.2f, 0.2f, 1f);
         buttonsRow = CreateChild("Buttons", canvasGO.transform);
         StretchFull(buttonsRow.GetComponent<RectTransform>());
         CreateButton("RetryButton", "Retry", buttonsRow.transform, new Vector2(-160f, -210f), red, RetryGame);
-        CreateButton("QuitButton", "Quit", buttonsRow.transform, new Vector2(160f, -210f), red, QuitGame);
+        CreateSpriteButton("QuitButton", QuitButtonSheet, buttonsRow.transform, new Vector2(160f, -210f), QuitGame);
 
         canvasGO.SetActive(false); // shown only on game over
     }
@@ -150,8 +156,10 @@ public class GameOverManager : MonoBehaviour
 
         var row = CreateChild("WinButtons", winCanvasGO.transform);
         StretchFull(row.GetComponent<RectTransform>());
-        CreateButton("ContinueButton", "Continue", row.transform, new Vector2(-160f, -210f), new Color(0.2f, 0.7f, 0.3f, 1f), ContinueGame);
-        CreateButton("WinQuitButton", "Quit", row.transform, new Vector2(160f, -210f), new Color(0.85f, 0.2f, 0.2f, 1f), QuitGame);
+        // Continue and Quit are artwork buttons — the same green "go" and red "quit" the rest of
+        // the game uses. (Game over's Retry stays a label: there is no retry artwork.)
+        CreateSpriteButton("ContinueButton", PlayButtonSheet, row.transform, new Vector2(-140f, -210f), ContinueGame);
+        CreateSpriteButton("WinQuitButton", QuitButtonSheet, row.transform, new Vector2(140f, -210f), QuitGame);
 
         winCanvasGO.SetActive(false); // shown only on win
     }
@@ -170,23 +178,34 @@ public class GameOverManager : MonoBehaviour
         scaler.referenceResolution = new Vector2(1920f, 1080f);
         scaler.matchWidthOrHeight = 0.5f;
 
-        var go = CreateChild("HudRetryButton", hudGO.transform);
+        HudButton(hudGO.transform, "HudRetryButton", "Retry", 24f, RetryGame);
+
+        // Test-playing a level from the editor: give the designer a one-click way back to the
+        // board without having to die or finish first.
+        if (GameSession.ReturnToEditorOnExit)
+            HudButton(hudGO.transform, "HudEditorButton", "Editor", 190f, BackToEditor);
+    }
+
+    // A small top-left HUD button, placed `x` pixels in from the left edge.
+    static void HudButton(Transform parent, string name, string label, float x, UnityAction onClick)
+    {
+        var go = CreateChild(name, parent);
         var rt = go.GetComponent<RectTransform>();
         rt.anchorMin = rt.anchorMax = new Vector2(0f, 1f); // top-left corner
         rt.pivot = new Vector2(0f, 1f);
-        rt.anchoredPosition = new Vector2(24f, -24f);
+        rt.anchoredPosition = new Vector2(x, -24f);
         rt.sizeDelta = new Vector2(150f, 56f);
 
         var img = go.AddComponent<Image>();
         img.color = new Color(0.15f, 0.15f, 0.15f, 0.8f);
         var btn = go.AddComponent<Button>();
         btn.targetGraphic = img;
-        btn.onClick.AddListener(RetryGame);
+        btn.onClick.AddListener(onClick);
 
         var txtGO = CreateChild("Text", go.transform);
         StretchFull(txtGO.GetComponent<RectTransform>());
         var txt = txtGO.AddComponent<Text>();
-        txt.text = "Retry";
+        txt.text = label;
         txt.alignment = TextAnchor.MiddleCenter;
         txt.color = Color.white;
         txt.fontSize = 26;
@@ -253,12 +272,17 @@ public class GameOverManager : MonoBehaviour
         SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
     }
 
-    // Win -> Continue: advance to the next (harder) level, then reload the maze.
+    // Win -> Continue. Designed levels sit outside the numbered progression — there is no "next"
+    // one — so finishing a test play hands the designer back to the editor instead.
     void ContinueGame()
     {
+        if (GameSession.ReturnToEditorOnExit) { BackToEditor(); return; }
         GameProgress.Advance();
         RetryGame();
     }
+
+    // Leave a designed level and reopen it in the editor, exactly as it was left.
+    void BackToEditor() => GameSession.EnterEditor();
 
     void QuitGame()
     {
@@ -271,6 +295,34 @@ public class GameOverManager : MonoBehaviour
     }
 
     // --- tiny UI builders ---------------------------------------------------
+
+    // Sheets in Assets/Resources, each sliced into an idle (_0) and clicked (_1) frame.
+    const string PlayButtonSheet = "play button";
+    const string QuitButtonSheet = "quit button";
+    // On-screen height of an artwork button on the end screens.
+    const float SpriteButtonHeight = 96f;
+
+    // A button drawn from a sprite sheet instead of a coloured box with a label. SpriteButton loads
+    // the frames and wires the pressed swap; the width follows the art's own aspect.
+    static void CreateSpriteButton(string name, string sheet, Transform parent, Vector2 pos, UnityAction onClick)
+    {
+        var go = CreateChild(name, parent);
+        var img = go.AddComponent<Image>();
+        var btn = go.AddComponent<Button>();
+        btn.targetGraphic = img;
+        btn.onClick.AddListener(onClick);
+
+        go.AddComponent<SpriteButton>().Configure(sheet);
+
+        float aspect = img.sprite != null && img.sprite.rect.height > 0f
+            ? img.sprite.rect.width / img.sprite.rect.height
+            : 1f;
+        var rt = go.GetComponent<RectTransform>();
+        rt.anchorMin = rt.anchorMax = rt.pivot = new Vector2(0.5f, 0.5f);
+        rt.anchoredPosition = pos;
+        rt.sizeDelta = new Vector2(SpriteButtonHeight * aspect, SpriteButtonHeight);
+    }
+
     static GameObject CreateChild(string name, Transform parent)
     {
         var go = new GameObject(name, typeof(RectTransform));

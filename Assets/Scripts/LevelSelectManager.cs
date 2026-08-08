@@ -78,6 +78,15 @@ public class LevelSelectManager : MonoBehaviour
 
     void Start()
     {
+        // The level editor shares this scene (see GameSession) — there is no level to pick there,
+        // so stand down completely and leave the screen to LevelEditor.
+        if (GameSession.IsEditing)
+        {
+            started = true;
+            Time.timeScale = 1f;
+            return;
+        }
+
         if (AutoStart)
         {
             AutoStart = false;
@@ -219,12 +228,16 @@ public class LevelSelectManager : MonoBehaviour
         var nav = Child("NavBar", canvasGO.transform);
         Stretch(nav.GetComponent<RectTransform>());
         var navSize = new Vector2(300f, 84f);
-        CreateButton("Main Menu", nav.transform, new Vector2(-330f, -370f), navSize,
+        CreateButton("Main Menu", nav.transform, new Vector2(-495f, -370f), navSize,
                      new Color(0.20f, 0.58f, 0.48f, 1f), ReturnToMainMenu);
-        CreateButton("Options", nav.transform, new Vector2(0f, -370f), navSize,
+        CreateButton("Options", nav.transform, new Vector2(-165f, -370f), navSize,
                      new Color(0.25f, 0.45f, 0.80f, 1f), OpenOptions);
-        CreateButton("Quit", nav.transform, new Vector2(330f, -370f), navSize,
-                     new Color(0.85f, 0.22f, 0.22f, 1f), QuitGame);
+        // Build-your-own levels: opens the in-game editor, which also lists and launches everything
+        // previously saved.
+        CreateButton("Level Editor", nav.transform, new Vector2(165f, -370f), navSize,
+                     new Color(0.72f, 0.52f, 0.16f, 1f), OpenLevelEditor);
+        // Quit is the artwork button here too, so it reads the same on every screen that offers it.
+        CreateSpriteButton("QuitButton", QuitButtonSheet, nav.transform, new Vector2(495f, -370f), QuitGame);
     }
 
     void Update()
@@ -315,6 +328,10 @@ public class LevelSelectManager : MonoBehaviour
         SceneManager.LoadScene(0); // MainMenu is build index 0
     }
 
+    // Open the level editor. It reuses this scene, so switching mode and reloading is all it takes;
+    // GameSession reopens whatever level was last being built.
+    void OpenLevelEditor() => GameSession.EnterEditor();
+
     // Same as Main Menu, but ask the menu to open its Options/settings panel on load.
     void OpenOptions()
     {
@@ -345,6 +362,30 @@ public class LevelSelectManager : MonoBehaviour
     {
         if (Object.FindFirstObjectByType<EventSystem>() == null)
             new GameObject("EventSystem", typeof(EventSystem), typeof(InputSystemUIInputModule));
+    }
+
+    // Sheet in Assets/Resources holding the quit artwork's idle (_0) and clicked (_1) frames.
+    const string QuitButtonSheet = "quit button";
+    const float SpriteButtonHeight = 92f;
+
+    // A button drawn from a sprite sheet instead of a coloured box with a label. SpriteButton loads
+    // the frames and wires the pressed swap; the width follows the art's own aspect.
+    static void CreateSpriteButton(string name, string sheet, Transform parent, Vector2 pos, UnityAction onClick)
+    {
+        var go = Child(name, parent);
+        var img = go.AddComponent<Image>();
+        var btn = go.AddComponent<Button>();
+        btn.targetGraphic = img;
+        btn.onClick.AddListener(onClick);
+
+        go.AddComponent<SpriteButton>().Configure(sheet);
+
+        float aspect = img.sprite != null && img.sprite.rect.height > 0f
+            ? img.sprite.rect.width / img.sprite.rect.height
+            : 1f;
+        var rt = go.GetComponent<RectTransform>();
+        rt.sizeDelta = new Vector2(SpriteButtonHeight * aspect, SpriteButtonHeight);
+        rt.anchoredPosition = pos;
     }
 
     // A labelled UI button on the select-screen canvas.

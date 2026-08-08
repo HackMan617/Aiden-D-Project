@@ -106,17 +106,38 @@ public class LevelGrid : MonoBehaviour
     bool hasGoal;           // whether the goal cell has been placed
     Sprite[] sawbladeFrames; // spin frames sliced from sawbladeSheet at runtime
 
+    LevelData customLevel;  // the player-designed level being built, or null for a numbered maze
+    int customLaneIndex;    // round-robin cursor over the designed level's blade lanes
+
+    // The runtime-sliced sheets, built on first use. The level editor borrows these for its palette
+    // and board so it paints with exactly the art the game plays with, and it needs them even
+    // though Start() never builds a grid in edit mode.
+    public Sprite[] TileFrames { get { if (tileFrames == null) BuildTileFrames(); return tileFrames; } }
+    public Sprite[] SawbladeFrames { get { if (sawbladeFrames == null) BuildSawbladeFrames(); return sawbladeFrames; } }
+
     void Start()
     {
+        // This scene doubles as the host for the level editor so the editor can reuse the art
+        // assigned here. In edit mode no maze is built at all: `tiles` stays null, which makes
+        // LateUpdate a no-op, and LevelEditor takes the screen over.
+        if (GameSession.IsEditing)
+        {
+            gameObject.AddComponent<LevelEditor>();
+            return;
+        }
+
         if (player == null)
         {
             GameObject p = GameObject.Find("Player");
             if (p != null) player = p.transform;
         }
 
-        // Level 2 is a tighter, hand-designed arena — shrink the grid before it is built so there's
-        // less room to dodge. Other levels keep the inspector-configured size.
-        if (GameProgress.CurrentLevel == 2) { width = level2Width; height = level2Height; }
+        // A player-designed level carries its own board size; otherwise level 2 is a tighter,
+        // hand-designed arena — shrink the grid before it is built so there's less room to dodge.
+        // Every other level keeps the inspector-configured size.
+        customLevel = GameSession.CustomLevel;
+        if (customLevel != null) { width = customLevel.width; height = customLevel.height; }
+        else if (GameProgress.CurrentLevel == 2) { width = level2Width; height = level2Height; }
 
         BuildTileFrames();
         BuildSawbladeFrames();
@@ -125,8 +146,10 @@ public class LevelGrid : MonoBehaviour
 
         // Moving sawblade hazards — start the spawner if a sheet was assigned. The coroutine uses
         // scaled WaitForSeconds, so it stays paused while the level-select freeze holds timeScale
-        // at 0 and only begins once the player actually starts the level.
-        if (sawbladeFrames != null && sawbladeFrames.Length > 0)
+        // at 0 and only begins once the player actually starts the level. A designed level with no
+        // blade lanes painted gets no blades at all.
+        bool wantsBlades = customLevel == null || customLevel.sawRows.Count > 0;
+        if (sawbladeFrames != null && sawbladeFrames.Length > 0 && wantsBlades)
             StartCoroutine(SpawnSawblades());
     }
 
@@ -166,9 +189,20 @@ public class LevelGrid : MonoBehaviour
     // the game (level-select freeze, pause menu, game-over / win).
     IEnumerator SpawnSawblades()
     {
-        int level = Mathf.Max(1, GameProgress.CurrentLevel);
-        float speed = Mathf.Min(sawbladeMaxSpeed, sawbladeBaseSpeed + (level - 1) * sawbladeSpeedPerLevel);
-        float interval = Mathf.Max(sawbladeMinInterval, sawbladeBaseInterval - (level - 1) * sawbladeIntervalPerLevel);
+        float speed, interval;
+        if (customLevel != null)
+        {
+            // A designed level sets its own blade speed and spacing in the editor, so the per-level
+            // difficulty curve doesn't apply — the designer's numbers are the difficulty.
+            speed = customLevel.sawSpeed;
+            interval = customLevel.sawInterval;
+        }
+        else
+        {
+            int level = Mathf.Max(1, GameProgress.CurrentLevel);
+            speed = Mathf.Min(sawbladeMaxSpeed, sawbladeBaseSpeed + (level - 1) * sawbladeSpeedPerLevel);
+            interval = Mathf.Max(sawbladeMinInterval, sawbladeBaseInterval - (level - 1) * sawbladeIntervalPerLevel);
+        }
 
         yield return new WaitForSeconds(sawbladeFirstDelay);
         while (true)
@@ -184,7 +218,17 @@ public class LevelGrid : MonoBehaviour
     {
         if (sawbladeFrames == null || sawbladeFrames.Length == 0) return;
 
-        int row = Random.Range(0, height);
+        // Procedural levels drop blades on any row; a designed level cycles through exactly the
+        // lanes the player painted, so every blade they placed reliably shows up in rotation.
+        int row;
+        if (customLevel != null)
+        {
+            if (customLevel.sawRows.Count == 0) return;
+            row = customLevel.sawRows[customLaneIndex % customLevel.sawRows.Count];
+            customLaneIndex++;
+        }
+        else row = Random.Range(0, height);
+
         float y = origin.y + row * cellSize;
         float startX = origin.x - cellSize;         // just off the left edge
         float endX = origin.x + width * cellSize;   // just past the right edge
@@ -248,6 +292,13 @@ public class LevelGrid : MonoBehaviour
 
     void PopulateLevel()
     {
+        // A level built in the in-game editor wins outright: it says exactly where everything goes.
+        if (customLevel != null)
+        {
+            PopulateCustomLevel(customLevel);
+            return;
+        }
+
         // Level 2 is a hand-designed layout (see the "level 2 concept" art) rather than a random
         // one: the player starts in the bottom-right corner and must reach the win tile in the
         // top-left, dodging the sweeping sawblades (which are faster/more frequent than level 1 via
@@ -332,6 +383,58 @@ public class LevelGrid : MonoBehaviour
         // They're hazard cells, not walls, so the bottom-right -> top-left route always stays open;
         // combined with the tighter grid and the faster sweeping blades they make level 2 harder.
         SpawnObstacles(level2ObstacleCount);
+    }
+
+    // Builds a level authored in the in-game editor. Nothing here is random: every wall, hazard,
+    // marker and blade lane is placed exactly where the designer painted it.
+    //
+    // Walls reuse the existing red-tile machinery — a wall is simply a cell that starts out already
+    // painted, so the same movement rule that stops the player re-entering their own trail also
+    // stops them walking into a wall, with no new collision code. Hazards are the same deadly cells
+    // the procedural levels scatter, and blade lanes are read back in SpawnOneSawblade.
+    void PopulateCustomLevel(LevelData data)
+    {
+        bool hasWallSprite = tileFrames != null && tileFrames.Length > 0;
+
+        for (int x = 0; x < width; x++)
+            for (int y = 0; y < height; y++)
+            {
+                switch (data.Get(x, y))
+                {
+                    case LevelTile.Wall:
+                        painted[x, y] = true; // already "trail", so the player can never enter it
+                        if (hasWallSprite) tiles[x, y].sprite = tileFrames[tileFrames.Length - 1];
+                        else tiles[x, y].color = hotColor;
+                        break;
+
+                    case LevelTile.Hazard:
+                        obstacleCells.Add(new Vector2Int(x, y));
+                        if (obstacleFrames != null && obstacleFrames.Length > 0)
+                        {
+                            GameObject obs = PlaceSprite($"Obstacle_{x}_{y}", obstacleFrames[0],
+                                                         new Vector2Int(x, y), sortingOrder + 1);
+                            if (obs != null)
+                            {
+                                SpriteFlipbook flip = obs.AddComponent<SpriteFlipbook>();
+                                flip.frames = obstacleFrames;
+                                flip.fps = obstacleFps;
+                            }
+                        }
+                        break;
+                }
+            }
+
+        var startCell = new Vector2Int(data.startX, data.startY);
+        PlaceSprite("StartMarker", startMarkerSprite, startCell, sortingOrder + 1);
+        if (player != null)
+        {
+            Vector3 s = CellToWorld(startCell.x, startCell.y);
+            player.position = new Vector3(s.x, s.y, player.position.z);
+        }
+
+        goalCell = new Vector2Int(data.endX, data.endY);
+        hasGoal = true;
+        PlaceSprite("EndMarker", endMarkerSprite, goalCell, sortingOrder + 1);
     }
 
     // Marks the four orthogonal neighbours of a cell as used (in-bounds only) so obstacle placement

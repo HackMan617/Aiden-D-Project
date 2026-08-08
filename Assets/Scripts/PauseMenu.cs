@@ -24,14 +24,31 @@ public class PauseMenu : MonoBehaviour
     Toggle fullscreenToggle;
     bool paused;
 
+    GameObject hudPauseGO;        // the corner pause button
+    GameObject levelSelectCanvas; // cached picker canvas, resolved once (see CanPause)
+    bool levelSelectResolved;
+
     void Awake()
     {
+        // The level editor reuses the game scene and owns Escape there (it closes the level
+        // browser), so the pause menu and its corner button stand down entirely in edit mode.
+        if (GameSession.IsEditing) { enabled = false; return; }
+
         font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
         BuildUI();
+        BuildHudPauseButton();
     }
 
     void Update()
     {
+        // Offer the corner button only when Escape would work too, so it can't be clicked during
+        // the level picker, a game-over screen, or while the pause menu is already up.
+        if (hudPauseGO != null)
+        {
+            bool show = !paused && CanPause();
+            if (hudPauseGO.activeSelf != show) hudPauseGO.SetActive(show);
+        }
+
         Keyboard kb = Keyboard.current;
         if (kb == null) return;
         if (kb.escapeKey.wasPressedThisFrame)
@@ -44,8 +61,16 @@ public class PauseMenu : MonoBehaviour
     bool CanPause()
     {
         if (GameOverManager.Instance != null && GameOverManager.Instance.HasEnded) return false;
-        GameObject ls = GameObject.Find("LevelSelectCanvas"); // only found while it's active
-        return !(ls != null && ls.activeInHierarchy);
+
+        // The picker is built once, during the level-select manager's Start — which has already run
+        // by the first Update. Resolve it a single time: this now runs every frame for the corner
+        // button, and GameObject.Find walks the whole scene (135 grid tiles and counting).
+        if (!levelSelectResolved)
+        {
+            levelSelectCanvas = GameObject.Find("LevelSelectCanvas");
+            levelSelectResolved = true;
+        }
+        return !(levelSelectCanvas != null && levelSelectCanvas.activeInHierarchy);
     }
 
     public void Pause()
@@ -110,10 +135,13 @@ public class PauseMenu : MonoBehaviour
         mainPanel = Child("PauseMain", canvasGO.transform);
         Stretch(mainPanel);
         Label(mainPanel.transform, "PAUSED", new Vector2(0f, 280f), new Vector2(900f, 130f), 92, Color.white, TextAnchor.MiddleCenter);
-        Btn(mainPanel.transform, "Resume", new Vector2(0f, 110f), Resume);
+        // Resume and Quit are artwork buttons — SpriteButton loads each sheet's idle / clicked
+        // frames and handles the press swap. The two in between have no art yet, so they stay
+        // labelled boxes; the vertical spacing accounts for the taller sprite buttons.
+        SpriteBtn(mainPanel.transform, "ResumeButton", PlayButtonSheet, new Vector2(0f, 120f), Resume);
         Btn(mainPanel.transform, "Options", new Vector2(0f, 10f), ShowOptions);
-        Btn(mainPanel.transform, "Main Menu", new Vector2(0f, -90f), GoMainMenu);
-        Btn(mainPanel.transform, "Quit", new Vector2(0f, -190f), QuitGame);
+        Btn(mainPanel.transform, "Main Menu", new Vector2(0f, -80f), GoMainMenu);
+        SpriteBtn(mainPanel.transform, "QuitButton", QuitButtonSheet, new Vector2(0f, -190f), QuitGame);
 
         optionsPanel = Child("PauseOptions", canvasGO.transform);
         Stretch(optionsPanel);
@@ -137,7 +165,36 @@ public class PauseMenu : MonoBehaviour
         RT(go, pos, new Vector2(360f, 26f));
         var s = go.GetComponent<Slider>();
         s.minValue = 0f; s.maxValue = 1f; s.value = 1f;
+        go.AddComponent<SpriteSlider>().Configure(VolumeSliderSheet); // track + knob artwork
         return s;
+    }
+
+    // A small pause button in the top-right corner, so the game can be paused with the mouse and
+    // not only with Escape. It sits on its own canvas beneath the game-over HUD and the pause
+    // overlay, and Update() hides it whenever pausing isn't allowed.
+    void BuildHudPauseButton()
+    {
+        var hudGO = new GameObject("PauseHudCanvas", typeof(Canvas), typeof(CanvasScaler), typeof(GraphicRaycaster));
+        var canvas = hudGO.GetComponent<Canvas>();
+        canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+        canvas.sortingOrder = 40; // below the game-over HUD (50) and the pause overlay (250)
+        var scaler = hudGO.GetComponent<CanvasScaler>();
+        scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+        scaler.referenceResolution = new Vector2(1920f, 1080f);
+        scaler.matchWidthOrHeight = 0.5f;
+
+        hudPauseGO = Child("HudPauseButton", hudGO.transform);
+        var img = hudPauseGO.AddComponent<Image>();
+        var btn = hudPauseGO.AddComponent<Button>();
+        btn.targetGraphic = img;
+        btn.onClick.AddListener(Pause);
+        hudPauseGO.AddComponent<SpriteButton>().Configure(PauseButtonSheet);
+
+        // Pinned to the top-right corner; the game-over HUD's Retry owns the top-left.
+        var rt = hudPauseGO.GetComponent<RectTransform>();
+        rt.anchorMin = rt.anchorMax = rt.pivot = new Vector2(1f, 1f);
+        rt.sizeDelta = new Vector2(HudButtonHeight * SpriteAspect(img), HudButtonHeight);
+        rt.anchoredPosition = new Vector2(-24f, -24f);
     }
 
     // Mute toggle for the in-game pause menu, sitting next to the volume slider. MuteButton is
@@ -165,6 +222,37 @@ public class PauseMenu : MonoBehaviour
     }
 
     // ---- tiny helpers ---------------------------------------------------
+
+    // Sheets in Assets/Resources, each sliced into an idle (_0) and clicked (_1) frame — except the
+    // volume sheet, which is a track (_0) plus a knob (_1). See SpriteButton / SpriteSlider.
+    const string QuitButtonSheet = "quit button";
+    const string PlayButtonSheet = "play button";
+    const string PauseButtonSheet = "pause button";
+    const string VolumeSliderSheet = "volume slider";
+
+    // On-screen height of an artwork button; the width follows from the frame's own aspect so the
+    // pixel art is never stretched.
+    const float SpriteButtonHeight = 100f;
+    const float HudButtonHeight = 70f; // the corner pause button, smaller than a menu button
+
+    // A button whose artwork replaces the label entirely. SpriteButton pulls the two frames from
+    // the sheet and wires the pressed-state swap; the click action is passed in as usual.
+    void SpriteBtn(Transform parent, string name, string sheet, Vector2 pos, UnityAction onClick)
+    {
+        var go = Child(name, parent);
+        var img = go.AddComponent<Image>();
+        var b = go.AddComponent<Button>();
+        b.targetGraphic = img;
+        b.onClick.AddListener(onClick);
+
+        go.AddComponent<SpriteButton>().Configure(sheet);
+        RT(go, pos, new Vector2(SpriteButtonHeight * SpriteAspect(img), SpriteButtonHeight));
+    }
+
+    // Width-to-height ratio of whatever frame the skin loaded, so a rect can be sized to the art.
+    static float SpriteAspect(Image img) =>
+        img.sprite != null && img.sprite.rect.height > 0f ? img.sprite.rect.width / img.sprite.rect.height : 1f;
+
     void Btn(Transform parent, string label, Vector2 pos, UnityAction onClick)
     {
         var go = Child(label.Replace(" ", "") + "Button", parent);
