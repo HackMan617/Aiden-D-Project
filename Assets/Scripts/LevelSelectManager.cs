@@ -96,6 +96,11 @@ public class LevelSelectManager : MonoBehaviour
             return;                 // no picker UI this load — play immediately
         }
 
+        // The picker is a menu screen, so it carries the menu track. Coming from the main menu this
+        // is a no-op (already playing); coming back from the level editor it swaps the building
+        // music back out.
+        MusicManager.PlayMenuMusic();
+
         BuildSprites();
         BuildUI();
 

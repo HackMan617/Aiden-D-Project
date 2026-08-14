@@ -73,6 +73,11 @@ public class LevelEditor : MonoBehaviour
         level.Validate();
 
         SuspendGameplay();
+
+        // Building has its own track. Test Play and Back both reload the scene, and whatever they
+        // land on sets its own music, so this only ever plays while the editor is up.
+        MusicManager.PlayEditorMusic();
+
         BorrowSprites();
         BuildUI();
         RebuildBoard();

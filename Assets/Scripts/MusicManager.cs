@@ -3,8 +3,9 @@ using UnityEngine;
 // Persistent, app-wide background-music player. It lives on a DontDestroyOnLoad singleton so music
 // survives scene loads and reloads, and each part of the game just tells it what should be playing:
 //
-//   * Main menu     -> "Glossy Marbles"                 (MainMenu.Start)
+//   * Main menu     -> "Glossy Marbles"                 (MainMenu.Start, LevelSelectManager's picker)
 //   * Gameplay      -> the level track ("i dont KNOW")  (LevelSelectManager, seamless across levels)
+//   * Level editor  -> "Construction"                   (LevelEditor.Start)
 //   * Pause menu    -> "Marbles Yet To Be Glossed"      (PauseMenu.Pause/Resume)
 //
 // Two AudioSources are used: `primary` for menu/gameplay music, and `overlay` for the pause track.
@@ -15,9 +16,10 @@ public class MusicManager : MonoBehaviour
 {
     public static MusicManager Instance { get; private set; }
 
-    // Menu / pause tracks live in Assets/Resources so they load by name without inspector wiring.
-    // (The gameplay track is passed in from LevelSelectManager's serialized clip.)
+    // Menu / editor / pause tracks live in Assets/Resources so they load by name without inspector
+    // wiring. (The gameplay track is passed in from LevelSelectManager's serialized clip.)
     const string MenuTrack = "Glossy Marbles";
+    const string EditorTrack = "Construction";
     const string PauseTrack = "Marbles Yet To Be Glossed";
 
     AudioSource primary; // menu / gameplay music
@@ -56,6 +58,9 @@ public class MusicManager : MonoBehaviour
 
     // Main-menu music (loaded from Resources).
     public static void PlayMenuMusic() => Get().PlayPrimary(Resources.Load<AudioClip>(MenuTrack));
+
+    // Level-editor music, played while the player is building rather than playing.
+    public static void PlayEditorMusic() => Get().PlayPrimary(Resources.Load<AudioClip>(EditorTrack));
 
     // Switch to the pause-menu track, freezing the gameplay track underneath it.
     public static void PlayPauseMusic() => Get().PushPause(Resources.Load<AudioClip>(PauseTrack));
