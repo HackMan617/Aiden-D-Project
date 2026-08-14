@@ -8,6 +8,9 @@ using UnityEngine.UI;
 //
 // NOTE: this project uses the Input System package only, so the menu scene's EventSystem must
 // use InputSystemUIInputModule (not the legacy StandaloneInputModule) or the UI won't respond.
+//
+// Keyboard control of the Play / Options / Quit stack (arrows, Tab, Enter) is not here — it lives on
+// a MenuNavigator component on the main panel itself.
 public class MainMenu : MonoBehaviour
 {
     [Header("Panels")]
