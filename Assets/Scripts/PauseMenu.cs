@@ -135,11 +135,12 @@ public class PauseMenu : MonoBehaviour
         mainPanel = Child("PauseMain", canvasGO.transform);
         Stretch(mainPanel);
         Label(mainPanel.transform, "PAUSED", new Vector2(0f, 280f), new Vector2(900f, 130f), 92, Color.white, TextAnchor.MiddleCenter);
-        // Resume and Quit are artwork buttons — SpriteButton loads each sheet's idle / clicked
-        // frames and handles the press swap. The two in between have no art yet, so they stay
-        // labelled boxes; the vertical spacing accounts for the taller sprite buttons.
+        // Resume, Options and Quit are artwork buttons. Resume and Quit hold an idle frame and swap
+        // to a clicked one; Options is a gear that turns the whole time it is on screen, which needs
+        // the animated skin instead. Main Menu has no art yet, so it stays a labelled box; the
+        // vertical spacing accounts for the taller sprite buttons.
         SpriteBtn(mainPanel.transform, "ResumeButton", PlayButtonSheet, new Vector2(0f, 120f), Resume);
-        Btn(mainPanel.transform, "Options", new Vector2(0f, 10f), ShowOptions);
+        AnimatedSpriteBtn(mainPanel.transform, "OptionsButton", OptionsButtonSheet, new Vector2(0f, 10f), ShowOptions);
         Btn(mainPanel.transform, "Main Menu", new Vector2(0f, -80f), GoMainMenu);
         SpriteBtn(mainPanel.transform, "QuitButton", QuitButtonSheet, new Vector2(0f, -190f), QuitGame);
 
@@ -230,6 +231,8 @@ public class PauseMenu : MonoBehaviour
     const string QuitButtonSheet = "quit button";
     const string PlayButtonSheet = "play button";
     const string PauseButtonSheet = "pause button";
+    // The options gear: eight frames of a full turn, looped by AnimatedSpriteButton.
+    const string OptionsButtonSheet = "options icon";
     const string VolumeSliderSheet = "volume slider";
     // Body of the volume slider. Wide and tall enough that the 3x-scaled track and knob have room
     // and the control is comfortable to grab with the mouse.
@@ -251,6 +254,21 @@ public class PauseMenu : MonoBehaviour
         b.onClick.AddListener(onClick);
 
         go.AddComponent<SpriteButton>().Configure(sheet);
+        RT(go, pos, new Vector2(SpriteButtonHeight * SpriteAspect(img), SpriteButtonHeight));
+    }
+
+    // Same as SpriteBtn, but the artwork loops through every frame on the sheet instead of holding
+    // a single idle one. For the options gear, which turns on its own. See AnimatedSpriteButton for
+    // why it can't just be a SpriteButton with more frames.
+    void AnimatedSpriteBtn(Transform parent, string name, string sheet, Vector2 pos, UnityAction onClick)
+    {
+        var go = Child(name, parent);
+        var img = go.AddComponent<Image>();
+        var b = go.AddComponent<Button>();
+        b.targetGraphic = img;
+        b.onClick.AddListener(onClick);
+
+        go.AddComponent<AnimatedSpriteButton>().Configure(sheet);
         RT(go, pos, new Vector2(SpriteButtonHeight * SpriteAspect(img), SpriteButtonHeight));
     }
 

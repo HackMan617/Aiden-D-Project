@@ -235,8 +235,8 @@ public class LevelSelectManager : MonoBehaviour
         var navSize = new Vector2(300f, 84f);
         CreateButton("Main Menu", nav.transform, new Vector2(-495f, -370f), navSize,
                      new Color(0.20f, 0.58f, 0.48f, 1f), ReturnToMainMenu);
-        CreateButton("Options", nav.transform, new Vector2(-165f, -370f), navSize,
-                     new Color(0.25f, 0.45f, 0.80f, 1f), OpenOptions);
+        // Options is the turning gear, the same icon the main and pause menus use.
+        CreateAnimatedSpriteButton("OptionsButton", OptionsButtonSheet, nav.transform, new Vector2(-165f, -370f), OpenOptions);
         // Build-your-own levels: opens the in-game editor, which also lists and launches everything
         // previously saved.
         CreateButton("Level Editor", nav.transform, new Vector2(165f, -370f), navSize,
@@ -369,8 +369,10 @@ public class LevelSelectManager : MonoBehaviour
             new GameObject("EventSystem", typeof(EventSystem), typeof(InputSystemUIInputModule));
     }
 
-    // Sheet in Assets/Resources holding the quit artwork's idle (_0) and clicked (_1) frames.
+    // Sheets in Assets/Resources. Quit holds an idle (_0) and a clicked (_1) frame; the options
+    // gear holds eight frames of a full turn, looped by AnimatedSpriteButton.
     const string QuitButtonSheet = "quit button";
+    const string OptionsButtonSheet = "options icon";
     const float SpriteButtonHeight = 92f;
 
     // A button drawn from a sprite sheet instead of a coloured box with a label. SpriteButton loads
@@ -384,7 +386,27 @@ public class LevelSelectManager : MonoBehaviour
         btn.onClick.AddListener(onClick);
 
         go.AddComponent<SpriteButton>().Configure(sheet);
+        SizeToArt(go, img, pos);
+    }
 
+    // Same as CreateSpriteButton, but the artwork loops through every frame on the sheet instead of
+    // holding a single idle one. For the options gear, which turns on its own.
+    static void CreateAnimatedSpriteButton(string name, string sheet, Transform parent, Vector2 pos, UnityAction onClick)
+    {
+        var go = Child(name, parent);
+        var img = go.AddComponent<Image>();
+        var btn = go.AddComponent<Button>();
+        btn.targetGraphic = img;
+        btn.onClick.AddListener(onClick);
+
+        go.AddComponent<AnimatedSpriteButton>().Configure(sheet);
+        SizeToArt(go, img, pos);
+    }
+
+    // Places an artwork button and gives it the loaded frame's own aspect, so the pixel art is never
+    // stretched. The skin has already run by this point, so the Image is showing a real frame.
+    static void SizeToArt(GameObject go, Image img, Vector2 pos)
+    {
         float aspect = img.sprite != null && img.sprite.rect.height > 0f
             ? img.sprite.rect.width / img.sprite.rect.height
             : 1f;
