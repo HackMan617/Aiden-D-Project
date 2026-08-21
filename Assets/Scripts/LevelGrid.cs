@@ -170,6 +170,11 @@ public class LevelGrid : MonoBehaviour
         bool wantsBlades = customLevel == null || customLevel.sawRows.Count > 0;
         if (sawbladeFrames != null && sawbladeFrames.Length > 0 && wantsBlades)
             StartCoroutine(SpawnSawblades());
+
+        // The player's weapon. It puts its own dial in the bottom-left corner of the screen and
+        // handles its own input, so all a level has to do is bring it into being — and only on this
+        // path, which means the editor (which returned above) never gets one.
+        ColorWheelWeapon.Spawn(player);
     }
 
     // Slice the tile sheet into the frames of one grey -> white -> red cycle. The 224x16 sheet

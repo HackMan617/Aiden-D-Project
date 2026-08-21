@@ -19,6 +19,11 @@ public class PlayerController : MonoBehaviour
              "and the side / up / down sheets keep their true proportions.")]
     public float playerSize = 0.9f;
 
+    // The direction the player is looking, remembered from the last non-zero movement input so it
+    // survives standing still. ColorWheelWeapon fires along it, which is why it starts at a sane
+    // value rather than zero — the very first shot of a level has to go somewhere.
+    public Vector2 Facing { get; private set; } = Vector2.right;
+
     Animator animator;
     SpriteRenderer spriteRenderer;
     float referenceHeight; // world-space height of the reference (idle) frame, captured once
@@ -69,7 +74,11 @@ public class PlayerController : MonoBehaviour
         int dir = 0; // side
         if (Mathf.Abs(input.y) > Mathf.Abs(input.x))
             dir = input.y > 0f ? 1 : 2; // up : down
-        if (input.sqrMagnitude > 0.0001f) animator.SetInteger("Direction", dir);
+        if (input.sqrMagnitude > 0.0001f)
+        {
+            animator.SetInteger("Direction", dir);
+            Facing = input.normalized;
+        }
 
         // Face the direction of horizontal travel (small threshold, never == on floats).
         if (input.x > 0.01f) spriteRenderer.flipX = false;
