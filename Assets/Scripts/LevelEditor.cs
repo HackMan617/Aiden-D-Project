@@ -14,19 +14,27 @@ using UnityEngine.UI;
 // obstacle frames, sawblade sheet) instead of duplicating all that wiring in a second scene. The
 // whole UI is built in code at runtime, like every other screen in this project.
 //
-//   palette    Floor / Wall / Hazard / Start / Goal / Saw / Erase, click or drag to paint
+//   palette    Floor / Wall / Brick / Hazard / Water / Start / Goal / Saw / Erase, click or drag
 //   board      up to 15x9 — the size the camera frames in play
-//   sawblades  a lane is a whole row (that's how the blades sweep); speed and spawn gap are sliders
+//   sawblades  a lane is a whole row (that's how the blades sweep); the speed and spawn-gap
+//              sliders belong to the Saw tool, so the side panel only shows them while it is picked
 //   save       named JSON files in the player's own save folder, via LevelStore
 //   test play  builds the level for real and hands the player back here afterwards
 public class LevelEditor : MonoBehaviour
 {
-    public enum Tool { Floor, Wall, Hazard, Start, Goal, Saw, Erase }
+    public enum Tool { Floor, Wall, Brick, Hazard, Water, Start, Goal, Saw, Erase }
 
     // --- layout (1920x1080 reference canvas, origin at centre) ---------------
     const float GridAreaWidth = 1290f, GridAreaHeight = 560f;
     static readonly Vector2 GridAreaCentre = new Vector2(-190f, -70f);
     const float MinCellPx = 28f, MaxCellPx = 86f;
+
+    // The settings panel down the right-hand side. It is centred in the strip left over between the
+    // palette captions (which bottom out at y 254) and the footer's status line (top y -373), and
+    // starts right of the palette's last swatch, so it sits on the screen edge without covering any
+    // artwork or crowding the Back button below it.
+    static readonly Vector2 SidePanelCentre = new Vector2(735f, -50f);
+    static readonly Vector2 SidePanelSize = new Vector2(400f, 620f);
 
     static readonly Color PanelColor = new Color(0.16f, 0.17f, 0.22f, 0.95f);
     static readonly Color ButtonColor = new Color(0.26f, 0.28f, 0.36f, 1f);
@@ -42,7 +50,17 @@ public class LevelEditor : MonoBehaviour
 
     // Art borrowed from LevelGrid. Any of these may be null if the matching sheet was never
     // assigned in the scene, so every use is guarded and falls back to a flat colour.
-    Sprite floorSprite, wallSprite, hazardSprite, startSprite, goalSprite, sawSprite;
+    Sprite floorSprite, wallSprite, brickSprite, hazardSprite, startSprite, goalSprite, sawSprite;
+
+    // Water is the one palette entry that moves. Its frames are cycled here rather than by a
+    // per-Image component so every pool on the board — and the palette swatch — advances together
+    // and the surface reads as a single body of water instead of a grid of unrelated puddles.
+    Sprite[] waterFrames;
+    float waterFps = 8f;
+    int waterFrame;
+    float waterTimer;
+    Image waterPaletteIcon;
+    readonly List<Image> waterCells = new List<Image>();
 
     Font font;
     GameObject canvasGO;
@@ -53,8 +71,14 @@ public class LevelEditor : MonoBehaviour
 
     readonly Dictionary<Tool, Image> toolBackgrounds = new Dictionary<Tool, Image>();
     InputField nameField;
-    Text statusText, speedText, intervalText, widthText, heightText, pageText;
+    Text statusText, speedText, intervalText, widthText, heightText, pageText, hintText;
     Slider speedSlider, intervalSlider;
+
+    // The side panel's sawblade settings, and the tool-independent block underneath that slides up
+    // to fill their place while they are hidden. See BuildSidePanel / SelectTool.
+    GameObject sawSection;
+    RectTransform boardSection;
+    const float SawSectionHeight = 245f;
 
     GameObject browserPanel;
     RectTransform browserRows;
@@ -128,6 +152,10 @@ public class LevelEditor : MonoBehaviour
 
         Sprite[] sawFrames = grid.SawbladeFrames;
         if (sawFrames != null && sawFrames.Length > 0) sawSprite = sawFrames[0];
+
+        brickSprite = grid.BrickSprite;
+        waterFrames = grid.WaterFrames;
+        waterFps = grid.waterFps;
     }
 
     void Update()
@@ -141,6 +169,30 @@ public class LevelEditor : MonoBehaviour
         Keyboard kb = Keyboard.current;
         if (kb != null && kb.escapeKey.wasPressedThisFrame && browserPanel != null && browserPanel.activeSelf)
             browserPanel.SetActive(false);
+
+        AnimateWater();
+    }
+
+    // Steps every water swatch on to the next ripple frame. Unscaled time, so the water keeps
+    // moving even if something has parked the clock at zero while the editor is up.
+    void AnimateWater()
+    {
+        if (waterFrames == null || waterFrames.Length < 2 || waterFps <= 0f) return;
+
+        waterTimer += Time.unscaledDeltaTime;
+        float frameTime = 1f / waterFps;
+        if (waterTimer < frameTime) return;
+
+        while (waterTimer >= frameTime)
+        {
+            waterTimer -= frameTime;
+            waterFrame = (waterFrame + 1) % waterFrames.Length;
+        }
+
+        Sprite frame = waterFrames[waterFrame];
+        if (waterPaletteIcon != null) waterPaletteIcon.sprite = frame;
+        foreach (Image cell in waterCells)
+            if (cell != null) cell.sprite = frame;
     }
 
     // ---- painting ----------------------------------------------------------
@@ -176,15 +228,17 @@ public class LevelEditor : MonoBehaviour
                 break;
 
             case Tool.Wall:
+            case Tool.Brick:
             case Tool.Hazard:
-                // A wall would seal the marker in and a hazard would kill on contact, so refuse
-                // rather than silently producing an unplayable level.
+            case Tool.Water:
+                // A wall would seal the marker in, and a hazard or a pool would kill on contact, so
+                // refuse rather than silently producing an unplayable level.
                 if (level.IsStart(x, y) || level.IsGoal(x, y))
                 {
                     if (!isDrag) Status("Move the start or goal marker first.");
                     return;
                 }
-                level.Set(x, y, tool == Tool.Wall ? LevelTile.Wall : LevelTile.Hazard);
+                level.Set(x, y, TileFor(tool));
                 break;
 
             case Tool.Floor:
@@ -200,11 +254,37 @@ public class LevelEditor : MonoBehaviour
         RefreshCells();
     }
 
+    // The tile each painting tool lays down. Tools that do something other than set a tile
+    // (the markers, the blade lane) never reach this.
+    static LevelTile TileFor(Tool t)
+    {
+        switch (t)
+        {
+            case Tool.Wall:   return LevelTile.Wall;
+            case Tool.Brick:  return LevelTile.Brick;
+            case Tool.Hazard: return LevelTile.Hazard;
+            case Tool.Water:  return LevelTile.Water;
+            default:          return LevelTile.Floor;
+        }
+    }
+
     void SelectTool(Tool next)
     {
         tool = next;
         foreach (var pair in toolBackgrounds)
             pair.Value.color = pair.Key == tool ? ToolActive : ToolIdle;
+
+        // Only the Saw tool has settings of its own; the rest of the panel closes the gap when
+        // those settings are away.
+        bool saw = tool == Tool.Saw;
+        if (sawSection != null) sawSection.SetActive(saw);
+        if (boardSection != null)
+            boardSection.anchoredPosition = new Vector2(0f, saw ? 0f : SawSectionHeight);
+
+        if (hintText != null)
+            hintText.text = saw
+                ? "Click a row to give it a blade lane.\nClick it again to clear the lane."
+                : "Click or drag to paint.";
     }
 
     // ---- board -------------------------------------------------------------
@@ -261,19 +341,23 @@ public class LevelEditor : MonoBehaviour
     {
         if (cellBg == null) return;
 
+        // Rebuilt from scratch each pass: a cell that stopped being water must stop being animated,
+        // and after a resize the old Images have been destroyed outright.
+        waterCells.Clear();
+
         for (int x = 0; x < level.width; x++)
             for (int y = 0; y < level.height; y++)
             {
                 LevelTile t = level.Get(x, y);
                 bool lane = level.sawRows.Contains(y);
 
+                // A cell's background carries whatever material fills it edge to edge — floor, the
+                // two solid kinds, water — and its icon carries the things that merely sit on top.
                 Image bg = cellBg[x, y];
-                bool wall = t == LevelTile.Wall;
-                bg.sprite = wall ? wallSprite : floorSprite;
-                // Without a tile sheet the sprites are null, so carry the state in the colour.
-                Color baseColor = bg.sprite != null
-                    ? Color.white
-                    : (wall ? new Color(0.80f, 0.18f, 0.18f) : new Color(0.62f, 0.64f, 0.68f));
+                bg.sprite = FillSprite(t);
+                if (t == LevelTile.Water) waterCells.Add(bg);
+                // Without the sheets the sprites are null, so carry the state in the colour instead.
+                Color baseColor = bg.sprite != null ? Color.white : FallbackColor(t);
                 bg.color = lane ? baseColor * LaneTint : baseColor;
 
                 // One icon per cell, most specific first: the two unique markers outrank a hazard,
@@ -290,6 +374,35 @@ public class LevelEditor : MonoBehaviour
                 icon.enabled = iconSprite != null;
                 icon.color = new Color(1f, 1f, 1f, iconAlpha);
             }
+    }
+
+    // The art filling a whole cell, or null when the sheet it comes from was never found — the
+    // caller then falls back to FallbackColor so the board still reads.
+    Sprite FillSprite(LevelTile t)
+    {
+        switch (t)
+        {
+            case LevelTile.Wall:  return wallSprite;
+            // Brick borrows the red wall look only if its own block is missing, so the two solid
+            // kinds never silently become indistinguishable when the art is there.
+            case LevelTile.Brick: return brickSprite != null ? brickSprite : wallSprite;
+            case LevelTile.Water: return waterFrames != null && waterFrames.Length > 0
+                                         ? waterFrames[waterFrame] : null;
+            default:              return floorSprite;
+        }
+    }
+
+    // Flat stand-in colours for when the sheets are missing, so an unwired project still shows a
+    // board you can tell apart rather than a grid of identical blanks.
+    static Color FallbackColor(LevelTile t)
+    {
+        switch (t)
+        {
+            case LevelTile.Wall:  return new Color(0.80f, 0.18f, 0.18f);
+            case LevelTile.Brick: return new Color(0.55f, 0.50f, 0.46f);
+            case LevelTile.Water: return new Color(0.22f, 0.45f, 0.85f);
+            default:              return new Color(0.62f, 0.64f, 0.68f);
+        }
     }
 
     void ResizeBoard(int deltaWidth, int deltaHeight)
@@ -493,11 +606,14 @@ public class LevelEditor : MonoBehaviour
     void BuildPalette()
     {
         // Tool, caption, icon. Erase has no art of its own, so it draws as a bare marked square.
+        Sprite waterIcon = waterFrames != null && waterFrames.Length > 0 ? waterFrames[0] : null;
         var tools = new (Tool tool, string caption, Sprite icon)[]
         {
             (Tool.Floor,  "Floor",  floorSprite),
             (Tool.Wall,   "Wall",   wallSprite),
+            (Tool.Brick,  "Brick",  brickSprite),
             (Tool.Hazard, "Hazard", hazardSprite),
+            (Tool.Water,  "Water",  waterIcon),
             (Tool.Start,  "Start",  startSprite),
             (Tool.Goal,   "Goal",   goalSprite),
             (Tool.Saw,    "Saw",    sawSprite),
@@ -529,6 +645,8 @@ public class LevelEditor : MonoBehaviour
                 icon.sprite = entry.icon;
                 icon.preserveAspect = true;
                 icon.raycastTarget = false;
+                // The water swatch ripples in the palette too, so the tool advertises what it paints.
+                if (entry.tool == Tool.Water) waterPaletteIcon = icon;
             }
             else
             {
@@ -561,40 +679,57 @@ public class LevelEditor : MonoBehaviour
 
     void BuildSidePanel()
     {
+        // Parked against the right edge in the gap the rest of the screen leaves it: clear of the
+        // palette row above (whose last swatch ends at x 514) and stopping short of the footer, so
+        // it covers no artwork and never reaches the Back button. See SidePanelCentre / SidePanelSize.
         var panel = Child("SidePanel", canvasGO.transform);
-        Place(panel, new Vector2(700f, 20f), new Vector2(400f, 700f));
+        Place(panel, SidePanelCentre, SidePanelSize);
         panel.AddComponent<Image>().color = PanelColor;
         Transform p = panel.transform;
 
-        Header(p, "SAWBLADES", 300f);
+        // Speed and spawn gap only mean anything to the vertical sawblades, so they live in their
+        // own section that SelectTool shows while the Saw tool is held and hides otherwise. Both
+        // sections are zero-sized containers pinned to the panel's centre, so the widgets inside
+        // keep the same coordinates they would have had as direct children of the panel.
+        sawSection = Child("SawSection", p);
+        Place(sawSection, Vector2.zero, Vector2.zero);
+        Transform s = sawSection.transform;
+
+        Header(s, "SAWBLADES", 260f);
 
         // The blades sweep along whole rows, so speed and spacing are level-wide settings; which
         // rows they sweep is painted on the board with the Saw tool.
-        Label(p, "Speed", new Vector2(-110f, 245f), new Vector2(180f, 44f), 28, Color.white)
+        Label(s, "Speed", new Vector2(-110f, 205f), new Vector2(180f, 44f), 28, Color.white)
             .alignment = TextAnchor.MiddleLeft;
-        speedText = Label(p, "", new Vector2(110f, 245f), new Vector2(160f, 44f), 28, ToolActive);
+        speedText = Label(s, "", new Vector2(110f, 205f), new Vector2(160f, 44f), 28, ToolActive);
         speedText.alignment = TextAnchor.MiddleRight;
-        speedSlider = MakeSlider(p, new Vector2(0f, 205f), LevelData.MinSawSpeed, LevelData.MaxSawSpeed, level.sawSpeed);
+        speedSlider = MakeSlider(s, new Vector2(0f, 165f), LevelData.MinSawSpeed, LevelData.MaxSawSpeed, level.sawSpeed);
         speedSlider.onValueChanged.AddListener(v => { level.sawSpeed = v; RefreshSawLabels(); });
 
-        Label(p, "Spawn gap", new Vector2(-110f, 150f), new Vector2(180f, 44f), 28, Color.white)
+        Label(s, "Spawn gap", new Vector2(-110f, 110f), new Vector2(180f, 44f), 28, Color.white)
             .alignment = TextAnchor.MiddleLeft;
-        intervalText = Label(p, "", new Vector2(110f, 150f), new Vector2(160f, 44f), 28, ToolActive);
+        intervalText = Label(s, "", new Vector2(110f, 110f), new Vector2(160f, 44f), 28, ToolActive);
         intervalText.alignment = TextAnchor.MiddleRight;
-        intervalSlider = MakeSlider(p, new Vector2(0f, 110f), LevelData.MinSawInterval, LevelData.MaxSawInterval, level.sawInterval);
+        intervalSlider = MakeSlider(s, new Vector2(0f, 70f), LevelData.MinSawInterval, LevelData.MaxSawInterval, level.sawInterval);
         intervalSlider.onValueChanged.AddListener(v => { level.sawInterval = v; RefreshSawLabels(); });
 
         RefreshSawLabels();
 
-        Header(p, "BOARD SIZE", 40f);
-        widthText = Stepper(p, "Width", -10f, () => ResizeBoard(-1, 0), () => ResizeBoard(1, 0));
-        heightText = Stepper(p, "Height", -80f, () => ResizeBoard(0, -1), () => ResizeBoard(0, 1));
+        // Everything below belongs to no particular tool. It rides up into the sawblade section's
+        // space whenever that section is hidden, so the panel never shows a gap.
+        var general = Child("BoardSection", p);
+        Place(general, Vector2.zero, Vector2.zero);
+        boardSection = general.GetComponent<RectTransform>();
+        Transform g = general.transform;
 
-        MakeButton(p, "Clear Board", new Vector2(0f, -170f), new Vector2(300f, 64f), ButtonColor, ClearBoard, 28);
+        Header(g, "BOARD SIZE", 15f);
+        widthText = Stepper(g, "Width", -35f, () => ResizeBoard(-1, 0), () => ResizeBoard(1, 0));
+        heightText = Stepper(g, "Height", -105f, () => ResizeBoard(0, -1), () => ResizeBoard(0, 1));
 
-        var hint = Label(p, "Click or drag to paint.\nThe Saw tool toggles a whole row.",
-                         new Vector2(0f, -270f), new Vector2(360f, 100f), 22, new Color(0.72f, 0.74f, 0.8f));
-        hint.alignment = TextAnchor.MiddleCenter;
+        MakeButton(g, "Clear Board", new Vector2(0f, -195f), new Vector2(300f, 64f), ButtonColor, ClearBoard, 28);
+
+        hintText = Label(g, "", new Vector2(0f, -252f), new Vector2(360f, 66f), 22, new Color(0.72f, 0.74f, 0.8f));
+        hintText.alignment = TextAnchor.MiddleCenter;
     }
 
     void BuildFooter()

@@ -4,11 +4,15 @@ using UnityEngine;
 
 // What a single cell of a designed level holds. Stored as plain ints inside LevelData.cells so
 // JsonUtility can round-trip the whole board as one flat array.
+// Values are the numbers written into the save files, so new kinds are only ever appended —
+// renumbering one would silently reinterpret every level already on disk.
 public enum LevelTile
 {
     Floor = 0,   // ordinary reactive tile — walkable, and paints red behind the player
     Wall = 1,    // solid from the start; the player can never enter it
     Hazard = 2,  // animated obstacle — touching it is game over
+    Brick = 3,   // solid too, but drawn with the "aiden d wall" block instead of the red trail tile
+    Water = 4,   // animated pool — the player drowns on contact
 }
 
 // A player-designed level, as authored by the in-game editor (LevelEditor), written to disk by
@@ -73,11 +77,17 @@ public class LevelData
     public bool IsStart(int x, int y) => x == startX && y == startY;
     public bool IsGoal(int x, int y) => x == endX && y == endY;
 
+    // Solid from the moment the level is built: the player bumps off these rather than dying.
+    public static bool IsSolid(LevelTile t) => t == LevelTile.Wall || t == LevelTile.Brick;
+
+    // Deadly on contact: stepping onto one of these ends the run.
+    public static bool IsDeadly(LevelTile t) => t == LevelTile.Hazard || t == LevelTile.Water;
+
     // True where the player can never stand: solid walls and deadly obstacles alike.
     public bool IsBlocked(int x, int y)
     {
         LevelTile t = Get(x, y);
-        return t == LevelTile.Wall || t == LevelTile.Hazard;
+        return IsSolid(t) || IsDeadly(t);
     }
 
     // Grow or shrink the board, keeping everything that still fits inside the new bounds. Markers
@@ -117,7 +127,7 @@ public class LevelData
             cells = repaired;
         }
         for (int i = 0; i < cells.Length; i++)
-            if (cells[i] < 0 || cells[i] > (int)LevelTile.Hazard) cells[i] = (int)LevelTile.Floor;
+            if (cells[i] < 0 || cells[i] > (int)LevelTile.Water) cells[i] = (int)LevelTile.Floor;
 
         startX = Mathf.Clamp(startX, 0, width - 1);
         startY = Mathf.Clamp(startY, 0, height - 1);

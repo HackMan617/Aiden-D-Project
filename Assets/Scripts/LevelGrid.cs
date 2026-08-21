@@ -44,6 +44,16 @@ public class LevelGrid : MonoBehaviour
     [Tooltip("Obstacle animation speed (frames per second).")]
     public float obstacleFps = 6f;
 
+    [Header("Designed-level tiles (painted in the level editor)")]
+    [Tooltip("The 'aiden d wall' block (16x16). Left empty, it is loaded from Assets/Resources by name.")]
+    public Texture2D brickTexture;
+    [Tooltip("The 'aiden d water' sheet (128x16 = 8 frames of 16x16). Left empty, loaded from Assets/Resources.")]
+    public Texture2D waterSheet;
+    [Tooltip("How many equal-width frames the water sheet holds.")]
+    public int waterFrameCount = 8;
+    [Tooltip("Water ripple speed (frames per second).")]
+    public float waterFps = 8f;
+
     [Header("Level 2 (tighter designed arena)")]
     [Tooltip("Grid width used for the designed level 2 (smaller than level 1 so it feels tighter).")]
     public int level2Width = 10;
@@ -105,6 +115,8 @@ public class LevelGrid : MonoBehaviour
     Vector2Int goalCell;    // the end-marker cell — reaching it wins the maze
     bool hasGoal;           // whether the goal cell has been placed
     Sprite[] sawbladeFrames; // spin frames sliced from sawbladeSheet at runtime
+    Sprite brickSprite;      // the solid block, built from brickTexture at runtime
+    Sprite[] waterFrames;    // ripple frames sliced from waterSheet at runtime
 
     LevelData customLevel;  // the player-designed level being built, or null for a numbered maze
     int customLaneIndex;    // round-robin cursor over the designed level's blade lanes
@@ -114,6 +126,13 @@ public class LevelGrid : MonoBehaviour
     // though Start() never builds a grid in edit mode.
     public Sprite[] TileFrames { get { if (tileFrames == null) BuildTileFrames(); return tileFrames; } }
     public Sprite[] SawbladeFrames { get { if (sawbladeFrames == null) BuildSawbladeFrames(); return sawbladeFrames; } }
+    public Sprite BrickSprite { get { if (brickSprite == null) BuildBrickSprite(); return brickSprite; } }
+    public Sprite[] WaterFrames { get { if (waterFrames == null) BuildWaterFrames(); return waterFrames; } }
+
+    // Names of the two designed-level sheets inside Assets/Resources. Loaded by name — like the
+    // colour wheel and the button artwork — so nothing has to be wired up in the scene.
+    public const string BrickResource = "aiden d wall";
+    public const string WaterResource = "aiden d water";
 
     void Start()
     {
@@ -181,6 +200,34 @@ public class LevelGrid : MonoBehaviour
         for (int i = 0; i < n; i++)
             sawbladeFrames[i] = Sprite.Create(sawbladeSheet, new Rect(i * fw, 0f, fw, fh),
                                               new Vector2(0.5f, 0.5f), fh);
+    }
+
+    // The solid block the editor's Brick tool paints. It is one 16x16 image rather than a sheet, but
+    // it still goes through Sprite.Create so its pixels-per-unit matches the tile frames (one sprite
+    // = exactly one cell) instead of the importer's default 100.
+    void BuildBrickSprite()
+    {
+        if (brickTexture == null) brickTexture = Resources.Load<Texture2D>(BrickResource);
+        if (brickTexture == null) return;
+        float w = brickTexture.width, h = brickTexture.height;
+        if (w <= 0f || h <= 0f) return;
+        brickSprite = Sprite.Create(brickTexture, new Rect(0f, 0f, w, h), new Vector2(0.5f, 0.5f), h);
+    }
+
+    // Slice the water sheet into its equal-width ripple frames (128x16 -> 8 x 16x16), the same way
+    // the tile and sawblade sheets are cut.
+    void BuildWaterFrames()
+    {
+        if (waterSheet == null) waterSheet = Resources.Load<Texture2D>(WaterResource);
+        if (waterSheet == null) return;
+        int n = Mathf.Max(1, waterFrameCount);
+        float fw = waterSheet.width / (float)n;
+        float fh = waterSheet.height;
+        if (fw <= 0f || fh <= 0f) return;
+        waterFrames = new Sprite[n];
+        for (int i = 0; i < n; i++)
+            waterFrames[i] = Sprite.Create(waterSheet, new Rect(i * fw, 0f, fw, fh),
+                                           new Vector2(0.5f, 0.5f), fh);
     }
 
     // Continuously spawns sawblades that sweep left -> right across random rows. Speed and spawn
@@ -407,6 +454,19 @@ public class LevelGrid : MonoBehaviour
                         else tiles[x, y].color = hotColor;
                         break;
 
+                    case LevelTile.Brick:
+                        // Solid like a wall, so it reuses the same already-painted trick — only the
+                        // art differs. The block is laid over the tile as its own sprite rather than
+                        // swapped into the tile's renderer, so it scales itself to the cell and does
+                        // not depend on the tile sheet having been assigned at all.
+                        painted[x, y] = true;
+                        Sprite block = BrickSprite;
+                        if (block != null)
+                            PlaceSprite($"Brick_{x}_{y}", block, new Vector2Int(x, y), sortingOrder + 1);
+                        else if (hasWallSprite) tiles[x, y].sprite = tileFrames[tileFrames.Length - 1];
+                        else tiles[x, y].color = hotColor;
+                        break;
+
                     case LevelTile.Hazard:
                         obstacleCells.Add(new Vector2Int(x, y));
                         if (obstacleFrames != null && obstacleFrames.Length > 0)
@@ -418,6 +478,25 @@ public class LevelGrid : MonoBehaviour
                                 SpriteFlipbook flip = obs.AddComponent<SpriteFlipbook>();
                                 flip.frames = obstacleFrames;
                                 flip.fps = obstacleFps;
+                            }
+                        }
+                        break;
+
+                    case LevelTile.Water:
+                        // Deadly like a hazard — the player drowns — but it fills the whole cell and
+                        // ripples. Every pool is built in this one loop, so their flipbooks all start
+                        // on the same frame and the surface reads as one body of water.
+                        obstacleCells.Add(new Vector2Int(x, y));
+                        Sprite[] ripple = WaterFrames;
+                        if (ripple != null && ripple.Length > 0)
+                        {
+                            GameObject pool = PlaceSprite($"Water_{x}_{y}", ripple[0],
+                                                          new Vector2Int(x, y), sortingOrder + 1);
+                            if (pool != null)
+                            {
+                                SpriteFlipbook flip = pool.AddComponent<SpriteFlipbook>();
+                                flip.frames = ripple;
+                                flip.fps = waterFps;
                             }
                         }
                         break;
