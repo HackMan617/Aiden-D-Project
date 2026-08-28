@@ -4,17 +4,18 @@ using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
 // Skins a UI Button with a looping sprite-sheet animation instead of a coloured box and a text
-// label. Same job as SpriteButton, but for artwork that moves on its own — the options gear, which
-// turns continuously rather than sitting on one frame.
+// label. Same job as SpriteButton, but for artwork that moves on its own — the Options button,
+// whose two frames alternate continuously rather than sitting on one.
 //
 // SpriteButton is the wrong fit for that: it hands the frames to Unity's built-in SpriteSwap
-// transition, and SpriteSwap pins the Image to a single sprite whenever the button is hovered or
-// selected. A gear that stops turning the moment the mouse touches it looks broken, so this drives
-// the Image itself, reads the press through pointer events, and switches the Button's own
-// transition off so nothing swaps the sprite out from under the animation.
+// transition, which drives the sprite from the pointer — the artwork only changes when the button
+// is hovered, pressed or selected, and holds still the rest of the time. Artwork that is meant to
+// animate has to ignore the pointer entirely, so this drives the Image itself, reads the press
+// through pointer events, and switches the Button's own transition off so nothing swaps the sprite
+// out from under the animation.
 //
-// Press feedback is a burst of speed rather than a separate frame: every frame on the sheet is the
-// same cog at a different angle, so the gear just spins up while it is held down.
+// Press feedback is a burst of speed rather than a separate frame: the frames are one drawing in
+// motion, not an idle/clicked pair, so the loop just runs faster while the button is held down.
 //
 // Frames come from a sheet in Assets/Resources, ordered by the numeric suffix Unity's slicer gives
 // them (_0, _1, _2, ...), so buttons built in code need no inspector wiring. Leave the frames list
@@ -22,22 +23,24 @@ using UnityEngine.UI;
 //
 // The animation runs on unscaled time: two of the three screens that use it (the pause menu and the
 // level-select nav bar) freeze the game with Time.timeScale = 0, and a scaled clock would leave the
-// gear stopped exactly where it is meant to be spinning.
+// artwork stopped exactly where it is meant to be moving.
 [RequireComponent(typeof(Button)), RequireComponent(typeof(Image))]
 public class AnimatedSpriteButton : MonoBehaviour, IPointerDownHandler, IPointerUpHandler
 {
     [Header("Sprite sheet")]
     [Tooltip("Sheet name inside Assets/Resources, sliced into '<name>_0', '<name>_1', ... " +
              "Used only when the frames list below is left empty.")]
-    [SerializeField] private string spriteSheet = "options icon";
+    [SerializeField] private string spriteSheet = "updated options";
 
     [Header("Frames")]
     [Tooltip("The loop, in order. Left empty, it is loaded from the sheet.")]
     [SerializeField] private Sprite[] frames;
 
     [Header("Speed")]
-    [Tooltip("Frames per second while the button is idle.")]
-    [SerializeField] private float fps = 8f;
+    [Tooltip("Frames per second while the button is idle. The right value depends on how many " +
+             "frames the sheet holds — this is frames per second, not loops per second, so a short " +
+             "sheet needs a lower number than a long one to read at the same pace.")]
+    [SerializeField] private float fps = 3f;
     [Tooltip("How much faster the loop runs while the button is held down. This is the press " +
              "feedback, so keep it well above 1.")]
     [SerializeField] private float pressedSpeedMultiplier = 4f;
@@ -56,10 +59,13 @@ public class AnimatedSpriteButton : MonoBehaviour, IPointerDownHandler, IPointer
 
     // For buttons built in code: point the skin at a different sheet and re-apply. AddComponent
     // already ran Awake against the default sheet, so this re-resolves the frames from scratch.
-    public void Configure(string sheetName)
+    // Pass framesPerSecond to pace a sheet whose frame count differs from the default's; leave it
+    // out to keep the rate already set.
+    public void Configure(string sheetName, float framesPerSecond = 0f)
     {
         spriteSheet = sheetName;
         frames = null;
+        if (framesPerSecond > 0f) fps = framesPerSecond;
         Apply();
     }
 

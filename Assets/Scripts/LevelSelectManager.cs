@@ -235,7 +235,7 @@ public class LevelSelectManager : MonoBehaviour
         var navSize = new Vector2(300f, 84f);
         CreateButton("Main Menu", nav.transform, new Vector2(-495f, -370f), navSize,
                      new Color(0.20f, 0.58f, 0.48f, 1f), ReturnToMainMenu);
-        // Options is the turning gear, the same icon the main and pause menus use.
+        // Options is the same animating artwork the main and pause menus use.
         CreateAnimatedSpriteButton("OptionsButton", OptionsButtonSheet, nav.transform, new Vector2(-165f, -370f), OpenOptions);
         // Build-your-own levels: opens the in-game editor, which also lists and launches everything
         // previously saved.
@@ -369,10 +369,11 @@ public class LevelSelectManager : MonoBehaviour
             new GameObject("EventSystem", typeof(EventSystem), typeof(InputSystemUIInputModule));
     }
 
-    // Sheets in Assets/Resources. Quit holds an idle (_0) and a clicked (_1) frame; the options
-    // gear holds eight frames of a full turn, looped by AnimatedSpriteButton.
+    // Sheets in Assets/Resources. Quit holds an idle (_0) and a clicked (_1) frame; the Options
+    // artwork holds two frames of the word, alternated by AnimatedSpriteButton.
     const string QuitButtonSheet = "quit button";
-    const string OptionsButtonSheet = "options icon";
+    const string OptionsButtonSheet = "updated options";
+    const float OptionsButtonFps = 3f; // two frames, so this is 1.5 loops a second
     const float SpriteButtonHeight = 92f;
 
     // A button drawn from a sprite sheet instead of a coloured box with a label. SpriteButton loads
@@ -389,8 +390,8 @@ public class LevelSelectManager : MonoBehaviour
         SizeToArt(go, img, pos);
     }
 
-    // Same as CreateSpriteButton, but the artwork loops through every frame on the sheet instead of
-    // holding a single idle one. For the options gear, which turns on its own.
+    // Same as CreateSpriteButton, but the artwork cycles through every frame on the sheet on its own
+    // instead of holding a single idle one and reacting to the pointer. For the Options button.
     static void CreateAnimatedSpriteButton(string name, string sheet, Transform parent, Vector2 pos, UnityAction onClick)
     {
         var go = Child(name, parent);
@@ -399,7 +400,7 @@ public class LevelSelectManager : MonoBehaviour
         btn.targetGraphic = img;
         btn.onClick.AddListener(onClick);
 
-        go.AddComponent<AnimatedSpriteButton>().Configure(sheet);
+        go.AddComponent<AnimatedSpriteButton>().Configure(sheet, OptionsButtonFps);
         SizeToArt(go, img, pos);
     }
 
