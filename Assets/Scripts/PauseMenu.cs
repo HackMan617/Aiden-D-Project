@@ -148,11 +148,14 @@ public class PauseMenu : MonoBehaviour
         Stretch(optionsPanel);
         Label(optionsPanel.transform, "OPTIONS", new Vector2(0f, 280f), new Vector2(800f, 110f), 72, Color.white, TextAnchor.MiddleCenter);
         Label(optionsPanel.transform, "Volume", new Vector2(-260f, 100f), new Vector2(240f, 50f), 34, Color.white, TextAnchor.MiddleLeft);
-        // The slider sits between the "Volume" label (which ends at -140) and the mute button, and
-        // is centred at 150 so its wider body grows to the right rather than over the label.
+        // The slider sits between the "Volume" label (which ends at -140) and the controls after it,
+        // and is centred at 150 so its wider body grows to the right rather than over the label.
         volumeSlider = MakeSlider(optionsPanel.transform, new Vector2(150f, 100f));
         volumeSlider.onValueChanged.AddListener(v => AudioListener.volume = v);
-        MakeMuteButton(optionsPanel.transform, new Vector2(470f, 100f)); // just right of the slider
+        // The speaker icon comes first, right beside the handle it follows; mute stays a control of
+        // its own after it, since it works through AudioListener.pause rather than the volume.
+        MakeVolumeIcon(optionsPanel.transform, new Vector2(454f, 100f), volumeSlider);
+        MakeMuteButton(optionsPanel.transform, new Vector2(558f, 100f));
         fullscreenToggle = MakeToggle(optionsPanel.transform, new Vector2(-90f, 0f), "Fullscreen");
         fullscreenToggle.onValueChanged.AddListener(f => Screen.fullScreen = f);
         Btn(optionsPanel.transform, "Back", new Vector2(0f, -170f), ShowMain);
@@ -210,6 +213,17 @@ public class PauseMenu : MonoBehaviour
         go.transform.SetParent(parent, false);
         RT(go, pos, new Vector2(80f, 80f));
         go.GetComponent<Image>().preserveAspect = true;
+    }
+
+    // The speaker that shows how loud the game is: full at the slider's right end, crossed out at
+    // its left. Not a button — it only reports. See VolumeIcon.
+    void MakeVolumeIcon(Transform parent, Vector2 pos, Slider follows)
+    {
+        var go = new GameObject("VolumeIcon", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
+        go.transform.SetParent(parent, false);
+        RT(go, pos, new Vector2(80f, 80f));
+        go.GetComponent<Image>().preserveAspect = true;
+        go.AddComponent<VolumeIcon>().Track(follows);
     }
 
     Toggle MakeToggle(Transform parent, Vector2 pos, string label)
