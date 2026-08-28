@@ -743,8 +743,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8e270dec530b6184bba7570787a00b2f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BackgroundController
-  bgSheet: {fileID: 2800000, guid: ec1ff5fbc6a13b74ca028388c4468ba7, type: 3}
-  fps: 2
+  bgSheet: {fileID: 2800000, guid: fbdecd69077f67c4ea021ae67b669025, type: 3}
+  fps: 1
   coverSize: 30
   sortingOrder: -100
 --- !u!212 &2134019777

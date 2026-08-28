@@ -1,16 +1,21 @@
 using UnityEngine;
 
-// Animated game background. The sprite sheet ("aiden d updated bg", 768x128 = 6 frames of
-// 128x128) is sliced at runtime and shown behind everything. The background follows the camera
-// so it always fills the view, and its animation loops continuously — it keeps playing whether
-// or not the player is moving.
+// Animated game background. A horizontal strip of square frames (currently "updated bg 2",
+// 256x128 = 2 frames of 128x128) is sliced at runtime and shown behind everything. The background
+// follows the camera so it always fills the view, and its animation loops continuously — it keeps
+// playing whether or not the player is moving.
+//
+// The frame count is read off the texture's own proportions, so swapping in a longer or shorter
+// strip needs no code change. It does need a look at fps, which is frames per second rather than
+// loops per second: the same number runs a short strip round proportionally faster.
 [RequireComponent(typeof(SpriteRenderer))]
 public class BackgroundController : MonoBehaviour
 {
-    [Tooltip("The 'aiden d updated bg' texture (768x128 = 6 frames of 128x128).")]
+    [Tooltip("A horizontal strip of square frames, e.g. 'updated bg 2' (256x128 = 2 frames of 128x128).")]
     public Texture2D bgSheet;
-    [Tooltip("Animation speed, in frames per second.")]
-    public float fps = 2f;
+    [Tooltip("Animation speed, in frames per second — not loops per second, so a strip with fewer " +
+             "frames needs a lower number to drift at the same pace.")]
+    public float fps = 1f;
     [Tooltip("World-units the background spans; must cover the camera view at max zoom.")]
     public float coverSize = 30f;
     [Tooltip("Sorting order — keep well below the tiles (-10) so it draws behind everything.")]
@@ -45,9 +50,9 @@ public class BackgroundController : MonoBehaviour
             Debug.LogError("[BackgroundController] bgSheet texture is not assigned.");
             return;
         }
-        int fh = bgSheet.height;                 // 128 (square frames)
+        int fh = bgSheet.height;                 // frames are square, so the height is the frame size
         if (fh <= 0) return;
-        int n = Mathf.Max(1, bgSheet.width / fh); // 6
+        int n = Mathf.Max(1, bgSheet.width / fh); // as many frames as fit across the strip
         frames = new Sprite[n];
         for (int i = 0; i < n; i++)
             frames[i] = Sprite.Create(bgSheet, new Rect(i * fh, 0f, fh, fh),
