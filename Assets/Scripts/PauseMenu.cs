@@ -158,7 +158,12 @@ public class PauseMenu : MonoBehaviour
         MakeMuteButton(optionsPanel.transform, new Vector2(558f, 100f));
         fullscreenToggle = MakeToggle(optionsPanel.transform, new Vector2(-90f, 0f), "Fullscreen");
         fullscreenToggle.onValueChanged.AddListener(f => Screen.fullScreen = f);
-        Btn(optionsPanel.transform, "Back", new Vector2(0f, -170f), ShowMain);
+        // How to Play: a thumbnail of the controls diagram that opens full-size when clicked. Its
+        // label sits in the "Volume" column and the thumbnail starts where the slider starts, so the
+        // panel reads as two columns of rows. Back moved down to clear the taller row.
+        Label(optionsPanel.transform, "How to Play", new Vector2(-260f, -115f), new Vector2(260f, 50f), 34, Color.white, TextAnchor.MiddleLeft);
+        MakeHowToPlay(optionsPanel.transform, new Vector2(-35f, -115f));
+        Btn(optionsPanel.transform, "Back", new Vector2(0f, -245f), ShowMain);
 
         canvasGO.SetActive(false);
     }
@@ -224,6 +229,15 @@ public class PauseMenu : MonoBehaviour
         RT(go, pos, new Vector2(80f, 80f));
         go.GetComponent<Image>().preserveAspect = true;
         go.AddComponent<VolumeIcon>().Track(follows);
+    }
+
+    // The controls diagram, small. HowToPlay loads the artwork and opens the enlarged copy on click.
+    void MakeHowToPlay(Transform parent, Vector2 pos)
+    {
+        var go = new GameObject("HowToPlayButton", typeof(RectTransform), typeof(CanvasRenderer),
+            typeof(Image), typeof(Button), typeof(HowToPlay));
+        go.transform.SetParent(parent, false);
+        RT(go, pos, new Vector2(150f, 150f));
     }
 
     Toggle MakeToggle(Transform parent, Vector2 pos, string label)

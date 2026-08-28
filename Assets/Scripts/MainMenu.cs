@@ -41,6 +41,7 @@ public class MainMenu : MonoBehaviour
             volumeSlider.value = AudioListener.volume;
             volumeSlider.onValueChanged.AddListener(SetVolume);
             BuildVolumeRow();  // the level icon and the mute button, right of the slider
+            BuildHowToPlay();  // the controls diagram, in the row below the fullscreen toggle
         }
 
         if (fullscreenToggle != null)
@@ -82,6 +83,10 @@ public class MainMenu : MonoBehaviour
     private const float Gap = 24f;            // breathing room between controls in a row
     private const float ControlSize = 80f;    // the square controls beside the volume slider
 
+    private const float VolumeLabelX = -260f; // the column the "Volume" label sits in, from the scene
+    private const float HowToPlayRow = -120f; // clear of the fullscreen toggle above and Back below
+    private const float ThumbnailSize = 150f;
+
     // The two controls to the right of the volume slider, laid out left to right from its edge.
     private void BuildVolumeRow()
     {
@@ -117,6 +122,46 @@ public class MainMenu : MonoBehaviour
 
         edge += Gap + ControlSize;
         return go;
+    }
+
+    // The "How to Play" row: a label in the same column as "Volume", and a thumbnail of the controls
+    // diagram starting where the slider starts, so the panel reads as two columns of rows. Clicking
+    // the thumbnail opens the same diagram full-size — see HowToPlay.
+    private void BuildHowToPlay()
+    {
+        var sliderRT = volumeSlider.GetComponent<RectTransform>();
+        Transform parent = sliderRT.parent;
+        float left = sliderRT.anchoredPosition.x - sliderRT.sizeDelta.x * sliderRT.pivot.x;
+
+        var label = new GameObject("HowToPlayLabel",
+            typeof(RectTransform), typeof(CanvasRenderer), typeof(Text));
+        label.transform.SetParent(parent, false);
+        Place(label, sliderRT, new Vector2(VolumeLabelX, HowToPlayRow), new Vector2(260f, 50f));
+
+        var text = label.GetComponent<Text>();
+        text.text = "How to Play";
+        text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+        text.fontSize = 34; // matches the "Volume" label authored in the scene
+        text.color = Color.white;
+        text.alignment = TextAnchor.MiddleLeft;
+        text.raycastTarget = false;
+
+        var thumb = new GameObject("HowToPlayButton", typeof(RectTransform), typeof(CanvasRenderer),
+            typeof(Image), typeof(Button), typeof(HowToPlay));
+        thumb.transform.SetParent(parent, false);
+        Place(thumb, sliderRT, new Vector2(left + ThumbnailSize * 0.5f, HowToPlayRow),
+              new Vector2(ThumbnailSize, ThumbnailSize));
+    }
+
+    // Anchors a control the same way the slider is anchored, so it stays put alongside it.
+    private static void Place(GameObject go, RectTransform sliderRT, Vector2 pos, Vector2 size)
+    {
+        var rt = go.GetComponent<RectTransform>();
+        rt.anchorMin = sliderRT.anchorMin;
+        rt.anchorMax = sliderRT.anchorMax;
+        rt.pivot = sliderRT.pivot;
+        rt.sizeDelta = size;
+        rt.anchoredPosition = pos;
     }
 
     public void SetVolume(float value)
