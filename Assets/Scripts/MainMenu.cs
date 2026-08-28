@@ -40,7 +40,7 @@ public class MainMenu : MonoBehaviour
         {
             volumeSlider.value = AudioListener.volume;
             volumeSlider.onValueChanged.AddListener(SetVolume);
-            BuildMuteButton(); // sits just to the right of the volume slider
+            BuildVolumeRow();  // the level icon and the mute button, right of the slider
         }
 
         if (fullscreenToggle != null)
@@ -75,29 +75,48 @@ public class MainMenu : MonoBehaviour
         if (optionsPanel != null) optionsPanel.SetActive(true);
     }
 
-    // Creates the mute toggle in code (the Options panel is authored in the scene, but the sprite
-    // and MuteButton logic live in the project so we spawn it here) and places it immediately to
-    // the right of the volume slider. MuteButton handles the icon frames and the actual audio mute.
-    private void BuildMuteButton()
+    // Everything below is built in code rather than authored in the scene: the Options panel itself
+    // is in the scene, but the artwork and the behaviour live in the project, so spawning the
+    // controls here leaves the scene with nothing to wire up.
+
+    private const float Gap = 24f;            // breathing room between controls in a row
+    private const float ControlSize = 80f;    // the square controls beside the volume slider
+
+    // The two controls to the right of the volume slider, laid out left to right from its edge.
+    private void BuildVolumeRow()
     {
         var sliderRT = volumeSlider.GetComponent<RectTransform>();
+        float edge = sliderRT.anchoredPosition.x + sliderRT.sizeDelta.x * (1f - sliderRT.pivot.x);
 
-        var go = new GameObject("MuteButton",
-            typeof(RectTransform), typeof(CanvasRenderer), typeof(Image), typeof(Button), typeof(MuteButton));
+        // The speaker icon reads the slider, so it comes first — right beside the handle it follows.
+        GameObject icon = RowItem("VolumeIcon", sliderRT, ref edge);
+        icon.AddComponent<VolumeIcon>().Track(volumeSlider);
+
+        // Mute stays a control of its own: it works through AudioListener.pause rather than the
+        // volume, so it is not just the far-left end of the slider. The icon shows the crossed-out
+        // speaker while it is on, so the two still read as one thing.
+        GameObject mute = RowItem("MuteButton", sliderRT, ref edge);
+        mute.AddComponent<Button>();
+        mute.AddComponent<MuteButton>();
+    }
+
+    // Places one square control after the last, advancing `edge` past it.
+    private static GameObject RowItem(string name, RectTransform sliderRT, ref float edge)
+    {
+        var go = new GameObject(name, typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
         go.transform.SetParent(sliderRT.parent, false); // same container as the slider
 
-        var img = go.GetComponent<Image>();
-        img.preserveAspect = true;
+        go.GetComponent<Image>().preserveAspect = true;
 
         var rt = go.GetComponent<RectTransform>();
         rt.anchorMin = sliderRT.anchorMin;
         rt.anchorMax = sliderRT.anchorMax;
         rt.pivot = sliderRT.pivot;
-        rt.sizeDelta = new Vector2(80f, 80f);
-        // Nudge past the slider's right edge: clear the slider (its right half), leave a gap, then
-        // add the button's own half-width so the icon doesn't overlap the slider.
-        rt.anchoredPosition = sliderRT.anchoredPosition
-            + new Vector2(sliderRT.sizeDelta.x * (1f - sliderRT.pivot.x) + 24f + 40f, 0f);
+        rt.sizeDelta = new Vector2(ControlSize, ControlSize);
+        rt.anchoredPosition = new Vector2(edge + Gap + ControlSize * 0.5f, sliderRT.anchoredPosition.y);
+
+        edge += Gap + ControlSize;
+        return go;
     }
 
     public void SetVolume(float value)
