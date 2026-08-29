@@ -11,18 +11,26 @@ using UnityEngine.UI;
 //
 // It is spawned by LevelGrid when the scene loads in GameSession.Mode.Edit, and lives on the same
 // GameObject so it can borrow LevelGrid's already-assigned art (tile sheet, start / win markers,
-// obstacle frames, sawblade sheet) instead of duplicating all that wiring in a second scene. The
-// whole UI is built in code at runtime, like every other screen in this project.
+// obstacle frames, sawblade sheet, turret / bullet / lift sheets) instead of duplicating all that
+// wiring in a second scene. The whole UI is built in code at runtime, like every other screen in
+// this project.
 //
-//   palette    Floor / Wall / Brick / Hazard / Water / Start / Goal / Saw / Erase, click or drag
+//   palette    Floor / Wall / Brick / Hazard / Water / Spawner / Elevator / Start / Goal / Saw /
+//              Erase, click or drag
 //   board      up to 15x9 — the size the camera frames in play
-//   sawblades  a lane is a whole row (that's how the blades sweep); the speed and spawn-gap
-//              sliders belong to the Saw tool, so the side panel only shows them while it is picked
-//   save       named JSON files in the player's own save folder, via LevelStore
+//   sawblades  a lane is a whole row (that's how the blades sweep)
+//   spawners   a turret is one cell, and clicking it again turns it; how fast and how often every
+//              turret in the level fires is one pair of sliders
+//   elevators  a lift is one cell — where the platform starts before it rides the whole column
+//   save       named JSON files in the player's own save folder, via LevelStore. The name is asked
+//              for at save time, in a prompt, rather than sitting on the screen the whole session
 //   test play  builds the level for real and hands the player back here afterwards
+//
+// Only three tools carry settings of their own (Saw, Spawner, Elevator), and the side panel shows
+// exactly the one belonging to the tool in hand — see BuildSidePanel / SelectTool.
 public class LevelEditor : MonoBehaviour
 {
-    public enum Tool { Floor, Wall, Brick, Hazard, Water, Start, Goal, Saw, Erase }
+    public enum Tool { Floor, Wall, Brick, Hazard, Water, Spawner, Elevator, Start, Goal, Saw, Erase }
 
     // --- layout (1920x1080 reference canvas, origin at centre) ---------------
     const float GridAreaWidth = 1290f, GridAreaHeight = 560f;
@@ -30,9 +38,10 @@ public class LevelEditor : MonoBehaviour
     const float MinCellPx = 28f, MaxCellPx = 86f;
 
     // The settings panel down the right-hand side. It is centred in the strip left over between the
-    // palette captions (which bottom out at y 254) and the footer's status line (top y -373), and
-    // starts right of the palette's last swatch, so it sits on the screen edge without covering any
-    // artwork or crowding the Back button below it.
+    // palette captions (which bottom out at y 271) and the footer's status line (top y -373), so it
+    // sits on the screen edge without covering the board or crowding the Back button below it. The
+    // palette row above it now runs the full width of the screen, so the two clear each other
+    // vertically rather than horizontally.
     static readonly Vector2 SidePanelCentre = new Vector2(735f, -50f);
     static readonly Vector2 SidePanelSize = new Vector2(400f, 620f);
 
@@ -51,16 +60,50 @@ public class LevelEditor : MonoBehaviour
     // Art borrowed from LevelGrid. Any of these may be null if the matching sheet was never
     // assigned in the scene, so every use is guarded and falls back to a flat colour.
     Sprite floorSprite, wallSprite, brickSprite, hazardSprite, startSprite, goalSprite, sawSprite;
+    Sprite spawnerSprite;
 
-    // Water is the one palette entry that moves. Its frames are cycled here rather than by a
-    // per-Image component so every pool on the board — and the palette swatch — advances together
-    // and the surface reads as a single body of water instead of a grid of unrelated puddles.
-    Sprite[] waterFrames;
-    float waterFps = 8f;
-    int waterFrame;
-    float waterTimer;
-    Image waterPaletteIcon;
-    readonly List<Image> waterCells = new List<Image>();
+    // A set of Images all showing the same sheet, stepped together rather than one flipbook each, so
+    // what the board shows reads as one thing: every pool ripples in step so the water is a single
+    // body of water, every lift scrolls in step, every turret's bullet flickers in step. The palette
+    // swatch rides along too, so a tool advertises exactly what it paints.
+    class SpriteCycle
+    {
+        public Sprite[] frames;
+        public float fps = 8f;
+        public Image paletteIcon;
+        public readonly List<Image> cells = new List<Image>();
+
+        float timer;
+        int index;
+
+        public bool HasArt => frames != null && frames.Length > 0;
+        public Sprite Current => HasArt ? frames[index % frames.Length] : null;
+
+        // Unscaled time, so these keep moving even if something has parked the clock at zero while
+        // the editor is up.
+        public void Step(float deltaTime)
+        {
+            if (frames == null || frames.Length < 2 || fps <= 0f) return;
+
+            timer += deltaTime;
+            float frameTime = 1f / fps;
+            if (timer < frameTime) return;
+            while (timer >= frameTime)
+            {
+                timer -= frameTime;
+                index = (index + 1) % frames.Length;
+            }
+
+            Sprite frame = frames[index];
+            if (paletteIcon != null) paletteIcon.sprite = frame;
+            foreach (Image cell in cells)
+                if (cell != null) cell.sprite = frame;
+        }
+    }
+
+    readonly SpriteCycle water = new SpriteCycle();
+    readonly SpriteCycle lift = new SpriteCycle();
+    readonly SpriteCycle bullet = new SpriteCycle();
 
     Font font;
     GameObject canvasGO;
@@ -70,21 +113,29 @@ public class LevelEditor : MonoBehaviour
     float cellPx;
 
     readonly Dictionary<Tool, Image> toolBackgrounds = new Dictionary<Tool, Image>();
-    InputField nameField;
-    Text statusText, speedText, intervalText, widthText, heightText, pageText, hintText;
-    Slider speedSlider, intervalSlider;
+    Text nameText, statusText, hintText;
+    Text speedText, intervalText, bulletSpeedText, fireIntervalText, liftSpeedText;
+    Text widthText, heightText, pageText;
+    Slider speedSlider, intervalSlider, bulletSpeedSlider, fireIntervalSlider, liftSpeedSlider;
 
-    // The side panel's sawblade settings, and the tool-independent block underneath that slides up
-    // to fill their place while they are hidden. See BuildSidePanel / SelectTool.
-    GameObject sawSection;
+    // The side panel's per-tool sections, and the tool-independent block underneath that slides up
+    // to fill their place while none of them is showing. Every section is the same height, so that
+    // is one offset rather than one per tool. See BuildSidePanel / SelectTool.
+    GameObject sawSection, spawnerSection, elevatorSection;
     RectTransform boardSection;
-    const float SawSectionHeight = 245f;
+    const float ToolSectionHeight = 245f;
 
     GameObject browserPanel;
     RectTransform browserRows;
     List<string> browserNames = new List<string>();
     int browserPage;
     const int BrowserPageSize = 6;
+
+    // The naming prompt. A level is only named when it is being saved, so an unnamed draft can be
+    // built and test-played without ever answering the question.
+    GameObject savePanel;
+    InputField saveNameField;
+    Text saveHintText;
 
     float statusClearAt;
 
@@ -154,8 +205,14 @@ public class LevelEditor : MonoBehaviour
         if (sawFrames != null && sawFrames.Length > 0) sawSprite = sawFrames[0];
 
         brickSprite = grid.BrickSprite;
-        waterFrames = grid.WaterFrames;
-        waterFps = grid.waterFps;
+        spawnerSprite = grid.SpawnerSprite;
+
+        water.frames = grid.WaterFrames;
+        water.fps = grid.waterFps;
+        lift.frames = grid.ElevatorFrames;
+        lift.fps = grid.elevatorFps;
+        bullet.frames = grid.ProjectileFrames;
+        bullet.fps = grid.projectileFps;
     }
 
     void Update()
@@ -167,42 +224,36 @@ public class LevelEditor : MonoBehaviour
         }
 
         Keyboard kb = Keyboard.current;
-        if (kb != null && kb.escapeKey.wasPressedThisFrame && browserPanel != null && browserPanel.activeSelf)
-            browserPanel.SetActive(false);
-
-        AnimateWater();
-    }
-
-    // Steps every water swatch on to the next ripple frame. Unscaled time, so the water keeps
-    // moving even if something has parked the clock at zero while the editor is up.
-    void AnimateWater()
-    {
-        if (waterFrames == null || waterFrames.Length < 2 || waterFps <= 0f) return;
-
-        waterTimer += Time.unscaledDeltaTime;
-        float frameTime = 1f / waterFps;
-        if (waterTimer < frameTime) return;
-
-        while (waterTimer >= frameTime)
+        if (kb != null)
         {
-            waterTimer -= frameTime;
-            waterFrame = (waterFrame + 1) % waterFrames.Length;
+            // Escape backs out of whichever overlay is up; Enter commits the naming prompt, so a
+            // name can be typed and saved without reaching for the mouse.
+            if (kb.escapeKey.wasPressedThisFrame)
+            {
+                if (SavePromptOpen) CloseSavePrompt();
+                else if (browserPanel != null && browserPanel.activeSelf) browserPanel.SetActive(false);
+            }
+            else if (SavePromptOpen &&
+                     (kb.enterKey.wasPressedThisFrame || kb.numpadEnterKey.wasPressedThisFrame))
+                ConfirmSave();
         }
 
-        Sprite frame = waterFrames[waterFrame];
-        if (waterPaletteIcon != null) waterPaletteIcon.sprite = frame;
-        foreach (Image cell in waterCells)
-            if (cell != null) cell.sprite = frame;
+        float dt = Time.unscaledDeltaTime;
+        water.Step(dt);
+        lift.Step(dt);
+        bullet.Step(dt);
     }
 
     // ---- painting ----------------------------------------------------------
 
     // Applies the active tool to one cell. `isDrag` is true when the pointer swept in with the
-    // button held: tools that toggle (the saw lane) or move a unique marker only act on the
-    // initial press, so a stroke can't flip a lane on and off as it crosses it.
+    // button held: tools that toggle (the saw lane), turn (a turret already placed) or move a unique
+    // marker only act on the initial press, so a stroke can't flip a lane on and off as it crosses
+    // it or spin every turret it passes over.
     public void PaintCell(int x, int y, bool isDrag)
     {
         if (level == null || !level.InBounds(x, y)) return;
+        if (SavePromptOpen) return;
         if (browserPanel != null && browserPanel.activeSelf) return;
 
         switch (tool)
@@ -227,17 +278,27 @@ public class LevelEditor : MonoBehaviour
                 level.endX = x; level.endY = y;
                 break;
 
+            case Tool.Spawner:
+            {
+                if (RefuseOnMarker(x, y, isDrag)) return;
+                LevelTile here = level.Get(x, y);
+                // A click on a turret that is already there aims it rather than repainting it, so
+                // the one palette button both places and turns. A drag only ever places.
+                if (LevelData.IsSpawner(here))
+                {
+                    if (isDrag) return;
+                    level.Set(x, y, LevelData.RotateSpawner(here));
+                }
+                else level.Set(x, y, LevelTile.SpawnerRight);
+                break;
+            }
+
             case Tool.Wall:
             case Tool.Brick:
             case Tool.Hazard:
             case Tool.Water:
-                // A wall would seal the marker in, and a hazard or a pool would kill on contact, so
-                // refuse rather than silently producing an unplayable level.
-                if (level.IsStart(x, y) || level.IsGoal(x, y))
-                {
-                    if (!isDrag) Status("Move the start or goal marker first.");
-                    return;
-                }
+            case Tool.Elevator:
+                if (RefuseOnMarker(x, y, isDrag)) return;
                 level.Set(x, y, TileFor(tool));
                 break;
 
@@ -254,17 +315,30 @@ public class LevelEditor : MonoBehaviour
         RefreshCells();
     }
 
+    // The start and goal cells are the one place nothing else may go. A wall or a turret would seal
+    // the marker in and a hazard or a pool would kill on contact; even a lift, which is harmless,
+    // would be quietly wiped by LevelData.Validate (it puts both markers back on plain floor). So
+    // refuse outright rather than producing a level that is broken or that silently loses the tile.
+    bool RefuseOnMarker(int x, int y, bool isDrag)
+    {
+        if (!level.IsStart(x, y) && !level.IsGoal(x, y)) return false;
+        if (!isDrag) Status("Move the start or goal marker first.");
+        return true;
+    }
+
     // The tile each painting tool lays down. Tools that do something other than set a tile
     // (the markers, the blade lane) never reach this.
     static LevelTile TileFor(Tool t)
     {
         switch (t)
         {
-            case Tool.Wall:   return LevelTile.Wall;
-            case Tool.Brick:  return LevelTile.Brick;
-            case Tool.Hazard: return LevelTile.Hazard;
-            case Tool.Water:  return LevelTile.Water;
-            default:          return LevelTile.Floor;
+            case Tool.Wall:     return LevelTile.Wall;
+            case Tool.Brick:    return LevelTile.Brick;
+            case Tool.Hazard:   return LevelTile.Hazard;
+            case Tool.Water:    return LevelTile.Water;
+            case Tool.Spawner:  return LevelTile.SpawnerRight;
+            case Tool.Elevator: return LevelTile.Elevator;
+            default:            return LevelTile.Floor;
         }
     }
 
@@ -274,17 +348,28 @@ public class LevelEditor : MonoBehaviour
         foreach (var pair in toolBackgrounds)
             pair.Value.color = pair.Key == tool ? ToolActive : ToolIdle;
 
-        // Only the Saw tool has settings of its own; the rest of the panel closes the gap when
-        // those settings are away.
-        bool saw = tool == Tool.Saw;
-        if (sawSection != null) sawSection.SetActive(saw);
-        if (boardSection != null)
-            boardSection.anchoredPosition = new Vector2(0f, saw ? 0f : SawSectionHeight);
+        // Three tools have settings of their own and never more than one is in hand, so the panel
+        // shows that one and the rest of it closes the gap when none of them is.
+        if (sawSection != null) sawSection.SetActive(tool == Tool.Saw);
+        if (spawnerSection != null) spawnerSection.SetActive(tool == Tool.Spawner);
+        if (elevatorSection != null) elevatorSection.SetActive(tool == Tool.Elevator);
 
-        if (hintText != null)
-            hintText.text = saw
-                ? "Click a row to give it a blade lane.\nClick it again to clear the lane."
-                : "Click or drag to paint.";
+        bool sectionShowing = tool == Tool.Saw || tool == Tool.Spawner || tool == Tool.Elevator;
+        if (boardSection != null)
+            boardSection.anchoredPosition = new Vector2(0f, sectionShowing ? 0f : ToolSectionHeight);
+
+        if (hintText != null) hintText.text = HintFor(tool);
+    }
+
+    static string HintFor(Tool t)
+    {
+        switch (t)
+        {
+            case Tool.Saw:      return "Click a row to give it a blade lane.\nClick it again to clear the lane.";
+            case Tool.Spawner:  return "Click to place a turret.\nClick it again to turn it round.";
+            case Tool.Elevator: return "Click to drop a lift into a column.\nRide it back over your own trail.";
+            default:            return "Click or drag to paint.";
+        }
     }
 
     // ---- board -------------------------------------------------------------
@@ -343,7 +428,9 @@ public class LevelEditor : MonoBehaviour
 
         // Rebuilt from scratch each pass: a cell that stopped being water must stop being animated,
         // and after a resize the old Images have been destroyed outright.
-        waterCells.Clear();
+        water.cells.Clear();
+        lift.cells.Clear();
+        bullet.cells.Clear();
 
         for (int x = 0; x < level.width; x++)
             for (int y = 0; y < level.height; y++)
@@ -352,20 +439,44 @@ public class LevelEditor : MonoBehaviour
                 bool lane = level.sawRows.Contains(y);
 
                 // A cell's background carries whatever material fills it edge to edge — floor, the
-                // two solid kinds, water — and its icon carries the things that merely sit on top.
+                // two solid kinds, water, a lift, a turret — and its icon carries the things that
+                // merely sit on top.
                 Image bg = cellBg[x, y];
                 bg.sprite = FillSprite(t);
-                if (t == LevelTile.Water) waterCells.Add(bg);
+                if (t == LevelTile.Water) water.cells.Add(bg);
+                else if (t == LevelTile.Elevator) lift.cells.Add(bg);
                 // Without the sheets the sprites are null, so carry the state in the colour instead.
                 Color baseColor = bg.sprite != null ? Color.white : FallbackColor(t);
                 bg.color = lane ? baseColor * LaneTint : baseColor;
+                // A turret is shown turned to face the way it fires, exactly as it is in the level.
+                bg.rectTransform.localRotation =
+                    LevelData.IsSpawner(t) ? SpawnerRotation(t) : Quaternion.identity;
 
-                // One icon per cell, most specific first: the two unique markers outrank a hazard,
-                // and the blade lane only shows where nothing else is drawn.
+                // One icon per cell, most specific first: the two unique markers outrank everything,
+                // then a turret's bullet, then a hazard, and the blade lane only shows where nothing
+                // else is drawn.
                 Sprite iconSprite = null;
                 float iconAlpha = 1f;
+                float iconScale = 0.82f;
+                Vector2 iconOffset = Vector2.zero;
+                Quaternion iconRotation = Quaternion.identity;
+                bool isBullet = false;
+
                 if (level.IsStart(x, y)) iconSprite = startSprite;
                 else if (level.IsGoal(x, y)) iconSprite = goalSprite;
+                else if (LevelData.IsSpawner(t))
+                {
+                    // The bullet it fires, parked at the muzzle and pointing the way it will go —
+                    // aiming a turret is what a second click on it does, so the facing has to read at
+                    // a glance. The icon is a child of the cell, and the cell has already been turned
+                    // to face that way, so inside it "forward" is simply up: the offset goes up, and
+                    // the nose-right bullet art turns a quarter to match.
+                    iconSprite = bullet.Current;
+                    isBullet = iconSprite != null;
+                    iconScale = 0.42f;
+                    iconOffset = new Vector2(0f, cellPx * 0.32f);
+                    iconRotation = Quaternion.Euler(0f, 0f, 90f);
+                }
                 else if (t == LevelTile.Hazard) iconSprite = hazardSprite;
                 else if (lane) { iconSprite = sawSprite; iconAlpha = 0.55f; }
 
@@ -373,8 +484,23 @@ public class LevelEditor : MonoBehaviour
                 icon.sprite = iconSprite;
                 icon.enabled = iconSprite != null;
                 icon.color = new Color(1f, 1f, 1f, iconAlpha);
+                icon.rectTransform.anchoredPosition = iconOffset;
+                icon.rectTransform.localRotation = iconRotation;
+                icon.rectTransform.sizeDelta = new Vector2(cellPx * iconScale, cellPx * iconScale);
+                if (isBullet) bullet.cells.Add(icon);
             }
     }
+
+    static Vector2 Facing(LevelTile t)
+    {
+        Vector2Int f = LevelData.SpawnerFacing(t);
+        return new Vector2(f.x, f.y);
+    }
+
+    // The turret art is drawn muzzle-up, so a facing is a turn away from +y — the same angle
+    // LevelGrid gives the turret it builds, so the board and the level agree.
+    static Quaternion SpawnerRotation(LevelTile t) =>
+        Quaternion.Euler(0f, 0f, Vector2.SignedAngle(Vector2.up, Facing(t)));
 
     // The art filling a whole cell, or null when the sheet it comes from was never found — the
     // caller then falls back to FallbackColor so the board still reads.
@@ -386,9 +512,9 @@ public class LevelEditor : MonoBehaviour
             // Brick borrows the red wall look only if its own block is missing, so the two solid
             // kinds never silently become indistinguishable when the art is there.
             case LevelTile.Brick: return brickSprite != null ? brickSprite : wallSprite;
-            case LevelTile.Water: return waterFrames != null && waterFrames.Length > 0
-                                         ? waterFrames[waterFrame] : null;
-            default:              return floorSprite;
+            case LevelTile.Water: return water.Current;
+            case LevelTile.Elevator: return lift.Current;
+            default: return LevelData.IsSpawner(t) ? spawnerSprite : floorSprite;
         }
     }
 
@@ -398,10 +524,12 @@ public class LevelEditor : MonoBehaviour
     {
         switch (t)
         {
-            case LevelTile.Wall:  return new Color(0.80f, 0.18f, 0.18f);
-            case LevelTile.Brick: return new Color(0.55f, 0.50f, 0.46f);
-            case LevelTile.Water: return new Color(0.22f, 0.45f, 0.85f);
-            default:              return new Color(0.62f, 0.64f, 0.68f);
+            case LevelTile.Wall:     return new Color(0.80f, 0.18f, 0.18f);
+            case LevelTile.Brick:    return new Color(0.55f, 0.50f, 0.46f);
+            case LevelTile.Water:    return new Color(0.22f, 0.45f, 0.85f);
+            case LevelTile.Elevator: return new Color(0.47f, 0.49f, 0.58f);
+            default: return LevelData.IsSpawner(t) ? new Color(0.30f, 0.31f, 0.35f)
+                                                   : new Color(0.62f, 0.64f, 0.68f);
         }
     }
 
@@ -418,10 +546,14 @@ public class LevelEditor : MonoBehaviour
     void ClearBoard()
     {
         var blank = LevelData.CreateDefault();
-        // Keep the name and the blade tuning — clearing is about wiping the layout, not the level.
+        // Keep the name and every tuning slider — clearing is about wiping the layout, not the
+        // numbers the designer already settled on.
         blank.levelName = level.levelName;
         blank.sawSpeed = level.sawSpeed;
         blank.sawInterval = level.sawInterval;
+        blank.bulletSpeed = level.bulletSpeed;
+        blank.fireInterval = level.fireInterval;
+        blank.liftSpeed = level.liftSpeed;
         blank.Resize(level.width, level.height);
         blank.endX = blank.width - 1;
         blank.endY = blank.height - 1;
@@ -434,20 +566,65 @@ public class LevelEditor : MonoBehaviour
 
     // ---- save / load / play -------------------------------------------------
 
-    void SaveLevel()
+    bool SavePromptOpen => savePanel != null && savePanel.activeSelf;
+
+    // Saving is where a level gets its name. Nothing on the editor screen asks for one until this
+    // point, so a level can be built and test-played as an unnamed draft and only has to be called
+    // something once the player actually wants to keep it.
+    void OpenSavePrompt()
     {
-        level.levelName = nameField != null ? nameField.text : level.levelName;
+        if (browserPanel != null) browserPanel.SetActive(false);
+
+        // A level that has been saved before opens on its own name, ready to be saved over. One that
+        // hasn't opens empty rather than on the "New Level" placeholder, which the player would only
+        // have to clear out by hand.
+        string suggestion = level.levelName == LevelData.DefaultName ? string.Empty : level.levelName;
+        saveNameField.SetTextWithoutNotify(suggestion);
+
+        savePanel.SetActive(true);
+        RefreshSaveHint();
+        saveNameField.Select();
+        saveNameField.ActivateInputField();
+    }
+
+    void CloseSavePrompt()
+    {
+        if (savePanel != null) savePanel.SetActive(false);
+    }
+
+    // Warns before a save replaces a level already on disk. It updates as the name is typed, so the
+    // warning arrives while the player can still change their mind cheaply.
+    void RefreshSaveHint()
+    {
+        if (saveHintText == null) return;
+        string typed = LevelStore.Sanitize(saveNameField != null ? saveNameField.text : string.Empty);
+        saveHintText.text = typed.Length > 0 && LevelStore.Exists(typed)
+            ? $"\"{typed}\" already exists — saving replaces it."
+            : string.Empty;
+    }
+
+    void ConfirmSave()
+    {
+        string typed = saveNameField != null ? saveNameField.text : level.levelName;
+        string previousName = level.levelName;
+
+        level.levelName = typed;
         if (LevelStore.Save(level, out string error))
         {
-            if (nameField != null) nameField.SetTextWithoutNotify(level.levelName); // show it sanitized
+            // Save sanitizes the name in place, so the header shows what actually reached disk.
+            CloseSavePrompt();
+            RefreshNameText();
             Status($"Saved \"{level.levelName}\".");
+            return;
         }
-        else Status(error);
+
+        // Leave the prompt up with the reason on it — the player is one keystroke from fixing it.
+        level.levelName = previousName;
+        if (saveHintText != null) saveHintText.text = error;
     }
 
     void TestPlay()
     {
-        level.levelName = nameField != null ? nameField.text : level.levelName;
         level.Validate();
 
         // A level whose goal can't be walked to is simply broken, so catch it here rather than
@@ -517,10 +694,13 @@ public class LevelEditor : MonoBehaviour
         if (loaded == null) { Status($"Could not open \"{name}\"."); return; }
 
         level = loaded;
-        if (nameField != null) nameField.SetTextWithoutNotify(level.levelName);
+        RefreshNameText();
         if (speedSlider != null) speedSlider.SetValueWithoutNotify(level.sawSpeed);
         if (intervalSlider != null) intervalSlider.SetValueWithoutNotify(level.sawInterval);
-        RefreshSawLabels();
+        if (bulletSpeedSlider != null) bulletSpeedSlider.SetValueWithoutNotify(level.bulletSpeed);
+        if (fireIntervalSlider != null) fireIntervalSlider.SetValueWithoutNotify(level.fireInterval);
+        if (liftSpeedSlider != null) liftSpeedSlider.SetValueWithoutNotify(level.liftSpeed);
+        RefreshToolLabels();
         RebuildBoard();
         browserPanel.SetActive(false);
         Status($"Opened \"{level.levelName}\".");
@@ -576,6 +756,8 @@ public class LevelEditor : MonoBehaviour
         BuildSidePanel();
         BuildFooter();
         BuildBrowser();
+        // Last, so it is the canvas's last child and draws over the browser as well as the board.
+        BuildSavePrompt();
     }
 
     void BuildHeader()
@@ -585,42 +767,45 @@ public class LevelEditor : MonoBehaviour
         title.alignment = TextAnchor.MiddleLeft;
         title.fontStyle = FontStyle.Bold;
 
-        var nameLabel = Label(canvasGO.transform, "NAME", new Vector2(240f, 458f),
-                              new Vector2(140f, 50f), 30, Color.white);
-        nameLabel.alignment = TextAnchor.MiddleRight;
+        // The name is settled at save time now, so up here it is only a reminder of which level is
+        // on the board — read-only, and nothing to tab through while painting.
+        var caption = Label(canvasGO.transform, "EDITING", new Vector2(280f, 458f),
+                            new Vector2(220f, 50f), 28, new Color(0.62f, 0.66f, 0.78f));
+        caption.alignment = TextAnchor.MiddleRight;
 
-        var fieldGO = DefaultControls.CreateInputField(new DefaultControls.Resources());
-        fieldGO.name = "LevelNameField";
-        fieldGO.transform.SetParent(canvasGO.transform, false);
-        Place(fieldGO, new Vector2(590f, 458f), new Vector2(560f, 62f));
-        nameField = fieldGO.GetComponent<InputField>();
-        nameField.characterLimit = LevelStore.MaxNameLength;
-        nameField.text = level.levelName;
-        foreach (Text t in fieldGO.GetComponentsInChildren<Text>(true))
-        {
-            t.font = font;
-            t.fontSize = 30;
-        }
+        nameText = Label(canvasGO.transform, "", new Vector2(680f, 458f),
+                         new Vector2(560f, 62f), 38, Color.white);
+        nameText.alignment = TextAnchor.MiddleLeft;
+        RefreshNameText();
+    }
+
+    void RefreshNameText()
+    {
+        if (nameText == null) return;
+        bool unnamed = level.levelName == LevelData.DefaultName;
+        nameText.text = unnamed ? "Unsaved level" : level.levelName;
+        nameText.color = unnamed ? new Color(0.62f, 0.66f, 0.78f) : Color.white;
     }
 
     void BuildPalette()
     {
         // Tool, caption, icon. Erase has no art of its own, so it draws as a bare marked square.
-        Sprite waterIcon = waterFrames != null && waterFrames.Length > 0 ? waterFrames[0] : null;
         var tools = new (Tool tool, string caption, Sprite icon)[]
         {
-            (Tool.Floor,  "Floor",  floorSprite),
-            (Tool.Wall,   "Wall",   wallSprite),
-            (Tool.Brick,  "Brick",  brickSprite),
-            (Tool.Hazard, "Hazard", hazardSprite),
-            (Tool.Water,  "Water",  waterIcon),
-            (Tool.Start,  "Start",  startSprite),
-            (Tool.Goal,   "Goal",   goalSprite),
-            (Tool.Saw,    "Saw",    sawSprite),
-            (Tool.Erase,  "Erase",  null),
+            (Tool.Floor,    "Floor",    floorSprite),
+            (Tool.Wall,     "Wall",     wallSprite),
+            (Tool.Brick,    "Brick",    brickSprite),
+            (Tool.Hazard,   "Hazard",   hazardSprite),
+            (Tool.Water,    "Water",    water.Current),
+            (Tool.Spawner,  "Spawner",  spawnerSprite),
+            (Tool.Elevator, "Elevator", lift.Current),
+            (Tool.Start,    "Start",    startSprite),
+            (Tool.Goal,     "Goal",     goalSprite),
+            (Tool.Saw,      "Saw",      sawSprite),
+            (Tool.Erase,    "Erase",    null),
         };
 
-        const float spacing = 116f, buttonSize = 100f, rowY = 356f;
+        const float spacing = 110f, buttonSize = 94f, rowY = 356f;
         float firstX = -(tools.Length - 1) * spacing * 0.5f;
 
         for (int i = 0; i < tools.Length; i++)
@@ -645,8 +830,10 @@ public class LevelEditor : MonoBehaviour
                 icon.sprite = entry.icon;
                 icon.preserveAspect = true;
                 icon.raycastTarget = false;
-                // The water swatch ripples in the palette too, so the tool advertises what it paints.
-                if (entry.tool == Tool.Water) waterPaletteIcon = icon;
+                // The water and lift swatches move in the palette too, so those tools advertise
+                // what they paint rather than showing a still frame of it.
+                if (entry.tool == Tool.Water) water.paletteIcon = icon;
+                else if (entry.tool == Tool.Elevator) lift.paletteIcon = icon;
             }
             else
             {
@@ -659,9 +846,23 @@ public class LevelEditor : MonoBehaviour
                 markText.fontStyle = FontStyle.Bold;
             }
 
+            // The Spawner swatch also carries the bullet it fires, flickering in the corner, because
+            // the turret and its ammunition are two halves of the one tool.
+            if (entry.tool == Tool.Spawner && bullet.HasArt)
+            {
+                var shotGO = Child("Bullet", go.transform);
+                Place(shotGO, new Vector2(buttonSize * 0.26f, -buttonSize * 0.28f),
+                              new Vector2(buttonSize * 0.44f, buttonSize * 0.44f));
+                var shot = shotGO.AddComponent<Image>();
+                shot.sprite = bullet.Current;
+                shot.preserveAspect = true;
+                shot.raycastTarget = false;
+                bullet.paletteIcon = shot;
+            }
+
             var caption = Label(canvasGO.transform, entry.caption,
                                 new Vector2(firstX + i * spacing, rowY - 68f),
-                                new Vector2(spacing, 34f), 24, new Color(0.85f, 0.86f, 0.9f));
+                                new Vector2(spacing, 34f), 22, new Color(0.85f, 0.86f, 0.9f));
             caption.alignment = TextAnchor.MiddleCenter;
         }
     }
@@ -679,44 +880,64 @@ public class LevelEditor : MonoBehaviour
 
     void BuildSidePanel()
     {
-        // Parked against the right edge in the gap the rest of the screen leaves it: clear of the
-        // palette row above (whose last swatch ends at x 514) and stopping short of the footer, so
-        // it covers no artwork and never reaches the Back button. See SidePanelCentre / SidePanelSize.
+        // Parked against the right edge in the gap the rest of the screen leaves it: below the
+        // palette captions and stopping short of the footer, so it covers no artwork and never
+        // reaches the Back button. See SidePanelCentre / SidePanelSize.
         var panel = Child("SidePanel", canvasGO.transform);
         Place(panel, SidePanelCentre, SidePanelSize);
         panel.AddComponent<Image>().color = PanelColor;
         Transform p = panel.transform;
 
-        // Speed and spawn gap only mean anything to the vertical sawblades, so they live in their
-        // own section that SelectTool shows while the Saw tool is held and hides otherwise. Both
-        // sections are zero-sized containers pinned to the panel's centre, so the widgets inside
-        // keep the same coordinates they would have had as direct children of the panel.
-        sawSection = Child("SawSection", p);
-        Place(sawSection, Vector2.zero, Vector2.zero);
+        // One section per tool that has settings, each a zero-sized container pinned to the panel's
+        // centre so the widgets inside keep the coordinates they would have had as direct children
+        // of the panel. SelectTool shows the one belonging to the tool in hand and hides the rest.
+        // They are all ToolSectionHeight tall, so the block underneath has a single offset to slide
+        // by rather than one per tool.
+        sawSection = BuildSection(p, "SawSection");
         Transform s = sawSection.transform;
 
         Header(s, "SAWBLADES", 260f);
 
         // The blades sweep along whole rows, so speed and spacing are level-wide settings; which
         // rows they sweep is painted on the board with the Saw tool.
-        Label(s, "Speed", new Vector2(-110f, 205f), new Vector2(180f, 44f), 28, Color.white)
-            .alignment = TextAnchor.MiddleLeft;
-        speedText = Label(s, "", new Vector2(110f, 205f), new Vector2(160f, 44f), 28, ToolActive);
-        speedText.alignment = TextAnchor.MiddleRight;
-        speedSlider = MakeSlider(s, new Vector2(0f, 165f), LevelData.MinSawSpeed, LevelData.MaxSawSpeed, level.sawSpeed);
-        speedSlider.onValueChanged.AddListener(v => { level.sawSpeed = v; RefreshSawLabels(); });
+        speedText = SliderRow(s, "Speed", 205f, LevelData.MinSawSpeed, LevelData.MaxSawSpeed,
+                              level.sawSpeed, out speedSlider);
+        speedSlider.onValueChanged.AddListener(v => { level.sawSpeed = v; RefreshToolLabels(); });
 
-        Label(s, "Spawn gap", new Vector2(-110f, 110f), new Vector2(180f, 44f), 28, Color.white)
-            .alignment = TextAnchor.MiddleLeft;
-        intervalText = Label(s, "", new Vector2(110f, 110f), new Vector2(160f, 44f), 28, ToolActive);
-        intervalText.alignment = TextAnchor.MiddleRight;
-        intervalSlider = MakeSlider(s, new Vector2(0f, 70f), LevelData.MinSawInterval, LevelData.MaxSawInterval, level.sawInterval);
-        intervalSlider.onValueChanged.AddListener(v => { level.sawInterval = v; RefreshSawLabels(); });
+        intervalText = SliderRow(s, "Spawn gap", 110f, LevelData.MinSawInterval, LevelData.MaxSawInterval,
+                                 level.sawInterval, out intervalSlider);
+        intervalSlider.onValueChanged.AddListener(v => { level.sawInterval = v; RefreshToolLabels(); });
 
-        RefreshSawLabels();
+        // Turrets: every one on the board fires at the same speed and rate, the way every blade
+        // sweeps at the same speed. Where they are and which way each points is painted on the board.
+        spawnerSection = BuildSection(p, "SpawnerSection");
+        Transform sp = spawnerSection.transform;
 
-        // Everything below belongs to no particular tool. It rides up into the sawblade section's
-        // space whenever that section is hidden, so the panel never shows a gap.
+        Header(sp, "BULLET SPAWNERS", 260f);
+        bulletSpeedText = SliderRow(sp, "Bullet speed", 205f, LevelData.MinBulletSpeed, LevelData.MaxBulletSpeed,
+                                    level.bulletSpeed, out bulletSpeedSlider);
+        bulletSpeedSlider.onValueChanged.AddListener(v => { level.bulletSpeed = v; RefreshToolLabels(); });
+
+        fireIntervalText = SliderRow(sp, "Fire every", 110f, LevelData.MinFireInterval, LevelData.MaxFireInterval,
+                                     level.fireInterval, out fireIntervalSlider);
+        fireIntervalSlider.onValueChanged.AddListener(v => { level.fireInterval = v; RefreshToolLabels(); });
+
+        elevatorSection = BuildSection(p, "ElevatorSection");
+        Transform el = elevatorSection.transform;
+
+        Header(el, "ELEVATORS", 260f);
+        liftSpeedText = SliderRow(el, "Lift speed", 205f, LevelData.MinLiftSpeed, LevelData.MaxLiftSpeed,
+                                  level.liftSpeed, out liftSpeedSlider);
+        liftSpeedSlider.onValueChanged.AddListener(v => { level.liftSpeed = v; RefreshToolLabels(); });
+
+        var note = Label(el, "A lift rides the whole height of the\ncolumn you drop it in, and carries\nyou over tiles you already painted.",
+                         new Vector2(0f, 105f), new Vector2(370f, 100f), 22, new Color(0.72f, 0.74f, 0.8f));
+        note.alignment = TextAnchor.MiddleCenter;
+
+        RefreshToolLabels();
+
+        // Everything below belongs to no particular tool. It rides up into the sections' space
+        // whenever none of them is showing, so the panel never shows a gap.
         var general = Child("BoardSection", p);
         Place(general, Vector2.zero, Vector2.zero);
         boardSection = general.GetComponent<RectTransform>();
@@ -732,6 +953,13 @@ public class LevelEditor : MonoBehaviour
         hintText.alignment = TextAnchor.MiddleCenter;
     }
 
+    GameObject BuildSection(Transform parent, string name)
+    {
+        var section = Child(name, parent);
+        Place(section, Vector2.zero, Vector2.zero);
+        return section;
+    }
+
     void BuildFooter()
     {
         statusText = Label(canvasGO.transform, "", new Vector2(GridAreaCentre.x, -396f),
@@ -739,7 +967,7 @@ public class LevelEditor : MonoBehaviour
         statusText.alignment = TextAnchor.MiddleCenter;
 
         var size = new Vector2(300f, 80f);
-        MakeButton(canvasGO.transform, "Save", new Vector2(-520f, -462f), size, ButtonColor, SaveLevel, 32);
+        MakeButton(canvasGO.transform, "Save", new Vector2(-520f, -462f), size, ButtonColor, OpenSavePrompt, 32);
         MakeButton(canvasGO.transform, "My Levels", new Vector2(-175f, -462f), size, ButtonColor, OpenBrowser, 32);
         // Test Play is the play artwork — the same green button the rest of the game starts with.
         MakeSpriteButton(canvasGO.transform, "TestPlayButton", PlayButtonSheet, new Vector2(170f, -462f), 88f, TestPlay);
@@ -777,10 +1005,56 @@ public class LevelEditor : MonoBehaviour
         browserPanel.SetActive(false);
     }
 
-    void RefreshSawLabels()
+    // The naming prompt the Save button opens. It is the only place in the editor that asks for a
+    // level name, so the question is put once, when it is actually being answered.
+    void BuildSavePrompt()
+    {
+        savePanel = Child("SavePrompt", canvasGO.transform);
+        Stretch(savePanel);
+        savePanel.AddComponent<Image>().color = new Color(0f, 0f, 0f, 0.82f);
+
+        var panel = Child("Panel", savePanel.transform);
+        Place(panel, Vector2.zero, new Vector2(840f, 440f));
+        panel.AddComponent<Image>().color = PanelColor;
+
+        var title = Label(panel.transform, "SAVE LEVEL", new Vector2(0f, 150f), new Vector2(700f, 70f), 46, ToolActive);
+        title.alignment = TextAnchor.MiddleCenter;
+        title.fontStyle = FontStyle.Bold;
+
+        var prompt = Label(panel.transform, "What should this level be called?",
+                           new Vector2(0f, 82f), new Vector2(760f, 46f), 28, Color.white);
+        prompt.alignment = TextAnchor.MiddleCenter;
+
+        var fieldGO = DefaultControls.CreateInputField(new DefaultControls.Resources());
+        fieldGO.name = "SaveNameField";
+        fieldGO.transform.SetParent(panel.transform, false);
+        Place(fieldGO, new Vector2(0f, 14f), new Vector2(660f, 68f));
+        saveNameField = fieldGO.GetComponent<InputField>();
+        saveNameField.characterLimit = LevelStore.MaxNameLength;
+        saveNameField.onValueChanged.AddListener(_ => RefreshSaveHint());
+        foreach (Text t in fieldGO.GetComponentsInChildren<Text>(true))
+        {
+            t.font = font;
+            t.fontSize = 32;
+        }
+        if (saveNameField.placeholder is Text placeholder) placeholder.text = "Type a name";
+
+        saveHintText = Label(panel.transform, "", new Vector2(0f, -52f), new Vector2(760f, 44f), 24, ToolActive);
+        saveHintText.alignment = TextAnchor.MiddleCenter;
+
+        MakeButton(panel.transform, "Save", new Vector2(-160f, -145f), new Vector2(280f, 74f), GoColor, ConfirmSave, 32);
+        MakeButton(panel.transform, "Cancel", new Vector2(160f, -145f), new Vector2(280f, 74f), ButtonColor, CloseSavePrompt, 32);
+
+        savePanel.SetActive(false);
+    }
+
+    void RefreshToolLabels()
     {
         if (speedText != null) speedText.text = level.sawSpeed.ToString("0.0") + " u/s";
         if (intervalText != null) intervalText.text = level.sawInterval.ToString("0.0") + " s";
+        if (bulletSpeedText != null) bulletSpeedText.text = level.bulletSpeed.ToString("0.0") + " u/s";
+        if (fireIntervalText != null) fireIntervalText.text = level.fireInterval.ToString("0.0") + " s";
+        if (liftSpeedText != null) liftSpeedText.text = level.liftSpeed.ToString("0.0") + " u/s";
     }
 
     // ---- tiny UI builders --------------------------------------------------
@@ -790,6 +1064,18 @@ public class LevelEditor : MonoBehaviour
         var t = Label(parent, caption, new Vector2(0f, y), new Vector2(360f, 50f), 30, new Color(0.62f, 0.66f, 0.78f));
         t.alignment = TextAnchor.MiddleCenter;
         t.fontStyle = FontStyle.Bold;
+    }
+
+    // A "caption ..... value" line with a slider under it. Returns the value Text so the caller can
+    // keep it up to date, and hands back the Slider itself through `slider` to wire the change to.
+    Text SliderRow(Transform parent, string caption, float y, float min, float max, float value, out Slider slider)
+    {
+        Label(parent, caption, new Vector2(-110f, y), new Vector2(180f, 44f), 28, Color.white)
+            .alignment = TextAnchor.MiddleLeft;
+        var readout = Label(parent, "", new Vector2(110f, y), new Vector2(160f, 44f), 28, ToolActive);
+        readout.alignment = TextAnchor.MiddleRight;
+        slider = MakeSlider(parent, new Vector2(0f, y - 40f), min, max, value);
+        return readout;
     }
 
     // A "label  [-] value [+]" row; returns the value Text so the caller can keep it up to date.

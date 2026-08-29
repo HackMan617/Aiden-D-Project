@@ -1,2 +1,78 @@
 # Auto detect text files and perform LF normalization
 * text=auto
+
+# Everything below is here so a clone is byte-for-byte the project, on any machine.
+#
+# The rule above asks git to GUESS which files are text. It guesses by sniffing the first few
+# kilobytes for a NUL byte, and it is right nearly all the time — but a file it guesses wrong about
+# gets its line endings rewritten on checkout, which quietly corrupts it. For art, audio and
+# assemblies that means an asset that opens fine here and is broken for whoever cloned it. Naming
+# the formats outright removes the guess.
+
+# --- art -----------------------------------------------------------------
+*.png    binary
+*.jpg    binary
+*.jpeg   binary
+*.gif    binary
+*.bmp    binary
+*.tif    binary
+*.tiff   binary
+*.tga    binary
+*.psd    binary
+*.ai     binary
+*.aseprite binary
+*.ase    binary
+*.exr    binary
+*.hdr    binary
+
+# --- audio and video -----------------------------------------------------
+*.wav    binary
+*.mp3    binary
+*.ogg    binary
+*.aif    binary
+*.aiff   binary
+*.mp4    binary
+*.mov    binary
+*.webm   binary
+
+# --- fonts ---------------------------------------------------------------
+*.ttf    binary
+*.otf    binary
+
+# --- assemblies and packages ---------------------------------------------
+*.dll    binary
+*.pdb    binary
+*.exe    binary
+*.so     binary
+*.dylib  binary
+*.a      binary
+*.zip    binary
+*.unitypackage binary
+
+# --- models ---------------------------------------------------------------
+*.fbx    binary
+*.obj    binary
+*.blend  binary
+*.3ds    binary
+
+# --- Unity's own text formats --------------------------------------------
+# These really are text (YAML), and they are the files Unity rewrites constantly, so saying so is
+# what stops a scene showing up as "every line changed" on someone else's machine. They are stored
+# LF in the repository and checked out in whatever the platform uses, which is what Unity itself
+# writes -- pinning the checkout to LF instead would hand a Windows clone files that differ byte for
+# byte from the ones Unity goes on to save.
+*.unity text
+*.meta text
+*.asset text
+*.prefab text
+*.mat text
+*.anim text
+*.controller text
+*.physicMaterial text
+*.physicsMaterial2D text
+*.playable text
+*.mixer text
+*.shadergraph text
+*.shadersubgraph text
+*.inputactions text
+*.scenetemplate text

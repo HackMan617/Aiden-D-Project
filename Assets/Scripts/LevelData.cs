@@ -13,6 +13,19 @@ public enum LevelTile
     Hazard = 2,  // animated obstacle — touching it is game over
     Brick = 3,   // solid too, but drawn with the "aiden d wall" block instead of the red trail tile
     Water = 4,   // animated pool — the player drowns on contact
+
+    // A bullet spawner, one value per direction it fires in. Four values rather than one tile plus
+    // a stored angle: the facing then rides along inside the cell grid JsonUtility already writes,
+    // and survives a resize, a clone and a round-trip to disk with no extra bookkeeping. They run
+    // in rotation order, so RotateSpawner is a step of one.
+    SpawnerRight = 5,
+    SpawnerDown = 6,
+    SpawnerLeft = 7,
+    SpawnerUp = 8,
+
+    // Where a moving platform starts. The tile itself is ordinary walkable floor — the lift is a
+    // separate object that rides the column, and standing on it carries the player with it.
+    Elevator = 9,
 }
 
 // A player-designed level, as authored by the in-game editor (LevelEditor), written to disk by
@@ -32,7 +45,14 @@ public class LevelData
     public const float MinSawSpeed = 0.5f, MaxSawSpeed = 8f;
     public const float MinSawInterval = 0.5f, MaxSawInterval = 8f;
 
-    public string levelName = "New Level";
+    public const float MinBulletSpeed = 1f, MaxBulletSpeed = 10f;
+    public const float MinFireInterval = 0.4f, MaxFireInterval = 6f;
+    public const float MinLiftSpeed = 0.5f, MaxLiftSpeed = 6f;
+
+    // What an unnamed level is called until the player names it at save time.
+    public const string DefaultName = "New Level";
+
+    public string levelName = DefaultName;
     public int width = MaxWidth;
     public int height = MaxHeight;
 
@@ -50,6 +70,13 @@ public class LevelData
     public List<int> sawRows = new List<int>();
     public float sawSpeed = 2f;
     public float sawInterval = 3f;
+
+    // Bullet spawners and elevators are placed cell by cell (they are tile values), but how fast
+    // they run is a level-wide decision, the same way the blades' is — the editor puts each pair
+    // of numbers behind the tool that uses them.
+    public float bulletSpeed = 3.5f;
+    public float fireInterval = 2f;
+    public float liftSpeed = 1.6f;
 
     // A blank full-size board: all floor, start bottom-left, goal top-right.
     public static LevelData CreateDefault()
@@ -78,7 +105,34 @@ public class LevelData
     public bool IsGoal(int x, int y) => x == endX && y == endY;
 
     // Solid from the moment the level is built: the player bumps off these rather than dying.
-    public static bool IsSolid(LevelTile t) => t == LevelTile.Wall || t == LevelTile.Brick;
+    // A turret is solid too — it is a block that happens to shoot, not something to stand on.
+    public static bool IsSolid(LevelTile t) =>
+        t == LevelTile.Wall || t == LevelTile.Brick || IsSpawner(t);
+
+    public static bool IsSpawner(LevelTile t) =>
+        t >= LevelTile.SpawnerRight && t <= LevelTile.SpawnerUp;
+
+    // The direction a turret fires in. Anything that isn't a turret answers right, so callers
+    // never have to handle a zero direction.
+    public static Vector2Int SpawnerFacing(LevelTile t)
+    {
+        switch (t)
+        {
+            case LevelTile.SpawnerDown: return Vector2Int.down;
+            case LevelTile.SpawnerLeft: return Vector2Int.left;
+            case LevelTile.SpawnerUp:   return Vector2Int.up;
+            default:                    return Vector2Int.right;
+        }
+    }
+
+    // Turn a turret a quarter clockwise: right -> down -> left -> up -> right, which is the order
+    // the four enum values run in. Used by the editor, where clicking a turret aims it.
+    public static LevelTile RotateSpawner(LevelTile t)
+    {
+        if (!IsSpawner(t)) return LevelTile.SpawnerRight;
+        int step = ((int)t - (int)LevelTile.SpawnerRight + 1) % 4;
+        return (LevelTile)((int)LevelTile.SpawnerRight + step);
+    }
 
     // Deadly on contact: stepping onto one of these ends the run.
     public static bool IsDeadly(LevelTile t) => t == LevelTile.Hazard || t == LevelTile.Water;
@@ -126,8 +180,10 @@ public class LevelData
             if (cells != null) Array.Copy(cells, repaired, Mathf.Min(cells.Length, repaired.Length));
             cells = repaired;
         }
+        // Elevator is the highest tile value there is, so anything past it came from a file written
+        // by a newer build (or by hand) and is not something this one knows how to draw.
         for (int i = 0; i < cells.Length; i++)
-            if (cells[i] < 0 || cells[i] > (int)LevelTile.Water) cells[i] = (int)LevelTile.Floor;
+            if (cells[i] < 0 || cells[i] > (int)LevelTile.Elevator) cells[i] = (int)LevelTile.Floor;
 
         startX = Mathf.Clamp(startX, 0, width - 1);
         startY = Mathf.Clamp(startY, 0, height - 1);
@@ -154,8 +210,11 @@ public class LevelData
 
         sawSpeed = Mathf.Clamp(sawSpeed, MinSawSpeed, MaxSawSpeed);
         sawInterval = Mathf.Clamp(sawInterval, MinSawInterval, MaxSawInterval);
+        bulletSpeed = Mathf.Clamp(bulletSpeed, MinBulletSpeed, MaxBulletSpeed);
+        fireInterval = Mathf.Clamp(fireInterval, MinFireInterval, MaxFireInterval);
+        liftSpeed = Mathf.Clamp(liftSpeed, MinLiftSpeed, MaxLiftSpeed);
 
-        if (string.IsNullOrWhiteSpace(levelName)) levelName = "New Level";
+        if (string.IsNullOrWhiteSpace(levelName)) levelName = DefaultName;
     }
 
     // Can the player actually walk from the spawn to the win tile? Flood-fills the four-way

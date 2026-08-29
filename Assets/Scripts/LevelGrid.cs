@@ -54,6 +54,22 @@ public class LevelGrid : MonoBehaviour
     [Tooltip("Water ripple speed (frames per second).")]
     public float waterFps = 8f;
 
+    [Header("Bullet spawners and elevators (painted in the level editor)")]
+    [Tooltip("The 'bullet spawner' turret (64x64, one frame). Left empty, it is loaded from Assets/Resources.")]
+    public Texture2D spawnerTexture;
+    [Tooltip("The 'projectile' sheet (64x32 = 2 frames of 32x32). Left empty, loaded from Assets/Resources.")]
+    public Texture2D projectileSheet;
+    [Tooltip("How many equal-width frames the projectile sheet holds.")]
+    public int projectileFrameCount = 2;
+    [Tooltip("Bullet animation speed (frames per second).")]
+    public float projectileFps = 10f;
+    [Tooltip("The 'elevator' sheet (512x64 = 8 frames of 64x64). Left empty, loaded from Assets/Resources.")]
+    public Texture2D elevatorSheet;
+    [Tooltip("How many equal-width frames the elevator sheet holds.")]
+    public int elevatorFrameCount = 8;
+    [Tooltip("Elevator animation speed (frames per second).")]
+    public float elevatorFps = 10f;
+
     [Header("Level 2 (tighter designed arena)")]
     [Tooltip("Grid width used for the designed level 2 (smaller than level 1 so it feels tighter).")]
     public int level2Width = 10;
@@ -117,9 +133,14 @@ public class LevelGrid : MonoBehaviour
     Sprite[] sawbladeFrames; // spin frames sliced from sawbladeSheet at runtime
     Sprite brickSprite;      // the solid block, built from brickTexture at runtime
     Sprite[] waterFrames;    // ripple frames sliced from waterSheet at runtime
+    Sprite spawnerSprite;      // the turret block, built from spawnerTexture at runtime
+    Sprite[] projectileFrames; // bullet frames sliced from projectileSheet at runtime
+    Sprite[] elevatorFrames;   // platform frames sliced from elevatorSheet at runtime
 
     LevelData customLevel;  // the player-designed level being built, or null for a numbered maze
     int customLaneIndex;    // round-robin cursor over the designed level's blade lanes
+    Vector3 carryDelta;     // how far an elevator moved the player this frame
+    bool carried;           // whether one did at all — see CarryPlayer
 
     // The runtime-sliced sheets, built on first use. The level editor borrows these for its palette
     // and board so it paints with exactly the art the game plays with, and it needs them even
@@ -128,11 +149,17 @@ public class LevelGrid : MonoBehaviour
     public Sprite[] SawbladeFrames { get { if (sawbladeFrames == null) BuildSawbladeFrames(); return sawbladeFrames; } }
     public Sprite BrickSprite { get { if (brickSprite == null) BuildBrickSprite(); return brickSprite; } }
     public Sprite[] WaterFrames { get { if (waterFrames == null) BuildWaterFrames(); return waterFrames; } }
+    public Sprite SpawnerSprite { get { if (spawnerSprite == null) BuildSpawnerSprite(); return spawnerSprite; } }
+    public Sprite[] ProjectileFrames { get { if (projectileFrames == null) BuildProjectileFrames(); return projectileFrames; } }
+    public Sprite[] ElevatorFrames { get { if (elevatorFrames == null) BuildElevatorFrames(); return elevatorFrames; } }
 
     // Names of the two designed-level sheets inside Assets/Resources. Loaded by name — like the
     // colour wheel and the button artwork — so nothing has to be wired up in the scene.
     public const string BrickResource = "aiden d wall";
     public const string WaterResource = "aiden d water";
+    public const string SpawnerResource = "bullet spawner";
+    public const string ProjectileResource = "projectile";
+    public const string ElevatorResource = "elevator";
 
     void Start()
     {
@@ -193,46 +220,68 @@ public class LevelGrid : MonoBehaviour
                                           new Vector2(0.5f, 0.5f), frame);
     }
 
-    // Slice the sawblade sheet into its equal-width spin frames (128x64 -> 2 x 64x64).
-    void BuildSawbladeFrames()
+    // Cuts a sheet into `count` equal-width frames laid out left to right. Every animated sheet in
+    // the project is drawn that way, so they all come through here. Pixels-per-unit is the frame's
+    // own height, which makes one frame exactly one cell instead of the importer's default 100.
+    // Returns null when there is no sheet, so callers can fall back to a flat colour.
+    static Sprite[] SliceFrames(Texture2D sheet, int count)
     {
-        if (sawbladeSheet == null) return;
-        int n = Mathf.Max(1, sawbladeFrameCount);
-        float fw = sawbladeSheet.width / (float)n;
-        float fh = sawbladeSheet.height;
-        if (fw <= 0f || fh <= 0f) return;
-        sawbladeFrames = new Sprite[n];
+        if (sheet == null) return null;
+        int n = Mathf.Max(1, count);
+        float fw = sheet.width / (float)n;
+        float fh = sheet.height;
+        if (fw <= 0f || fh <= 0f) return null;
+
+        var frames = new Sprite[n];
         for (int i = 0; i < n; i++)
-            sawbladeFrames[i] = Sprite.Create(sawbladeSheet, new Rect(i * fw, 0f, fw, fh),
-                                              new Vector2(0.5f, 0.5f), fh);
+            frames[i] = Sprite.Create(sheet, new Rect(i * fw, 0f, fw, fh), new Vector2(0.5f, 0.5f), fh);
+        return frames;
     }
 
-    // The solid block the editor's Brick tool paints. It is one 16x16 image rather than a sheet, but
-    // it still goes through Sprite.Create so its pixels-per-unit matches the tile frames (one sprite
-    // = exactly one cell) instead of the importer's default 100.
+    // The one frame of a single-image asset, or null if there was no image.
+    static Sprite SliceOne(Texture2D image)
+    {
+        Sprite[] frames = SliceFrames(image, 1);
+        return frames != null && frames.Length > 0 ? frames[0] : null;
+    }
+
+    // Slice the sawblade sheet into its equal-width spin frames (128x64 -> 2 x 64x64).
+    void BuildSawbladeFrames() => sawbladeFrames = SliceFrames(sawbladeSheet, sawbladeFrameCount);
+
+    // The solid block the editor's Brick tool paints — one 16x16 image rather than a sheet.
     void BuildBrickSprite()
     {
         if (brickTexture == null) brickTexture = Resources.Load<Texture2D>(BrickResource);
-        if (brickTexture == null) return;
-        float w = brickTexture.width, h = brickTexture.height;
-        if (w <= 0f || h <= 0f) return;
-        brickSprite = Sprite.Create(brickTexture, new Rect(0f, 0f, w, h), new Vector2(0.5f, 0.5f), h);
+        brickSprite = SliceOne(brickTexture);
     }
 
-    // Slice the water sheet into its equal-width ripple frames (128x16 -> 8 x 16x16), the same way
-    // the tile and sawblade sheets are cut.
+    // Slice the water sheet into its equal-width ripple frames (128x16 -> 8 x 16x16).
     void BuildWaterFrames()
     {
         if (waterSheet == null) waterSheet = Resources.Load<Texture2D>(WaterResource);
-        if (waterSheet == null) return;
-        int n = Mathf.Max(1, waterFrameCount);
-        float fw = waterSheet.width / (float)n;
-        float fh = waterSheet.height;
-        if (fw <= 0f || fh <= 0f) return;
-        waterFrames = new Sprite[n];
-        for (int i = 0; i < n; i++)
-            waterFrames[i] = Sprite.Create(waterSheet, new Rect(i * fw, 0f, fw, fh),
-                                           new Vector2(0.5f, 0.5f), fh);
+        waterFrames = SliceFrames(waterSheet, waterFrameCount);
+    }
+
+    // The turret the editor's Spawner tool paints — a single 64x64 image drawn muzzle-up, which is
+    // why everything that shows one turns it by the angle from +y round to its facing.
+    void BuildSpawnerSprite()
+    {
+        if (spawnerTexture == null) spawnerTexture = Resources.Load<Texture2D>(SpawnerResource);
+        spawnerSprite = SliceOne(spawnerTexture);
+    }
+
+    // Slice the bullet sheet into its frames (64x32 -> 2 x 32x32). The art is drawn nose-right.
+    void BuildProjectileFrames()
+    {
+        if (projectileSheet == null) projectileSheet = Resources.Load<Texture2D>(ProjectileResource);
+        projectileFrames = SliceFrames(projectileSheet, projectileFrameCount);
+    }
+
+    // Slice the elevator sheet into its scrolling frames (512x64 -> 8 x 64x64).
+    void BuildElevatorFrames()
+    {
+        if (elevatorSheet == null) elevatorSheet = Resources.Load<Texture2D>(ElevatorResource);
+        elevatorFrames = SliceFrames(elevatorSheet, elevatorFrameCount);
     }
 
     // Continuously spawns sawblades that sweep left -> right across random rows. Speed and spawn
@@ -438,12 +487,14 @@ public class LevelGrid : MonoBehaviour
     }
 
     // Builds a level authored in the in-game editor. Nothing here is random: every wall, hazard,
-    // marker and blade lane is placed exactly where the designer painted it.
+    // marker, blade lane, turret and lift is placed exactly where the designer painted it.
     //
     // Walls reuse the existing red-tile machinery — a wall is simply a cell that starts out already
     // painted, so the same movement rule that stops the player re-entering their own trail also
-    // stops them walking into a wall, with no new collision code. Hazards are the same deadly cells
-    // the procedural levels scatter, and blade lanes are read back in SpawnOneSawblade.
+    // stops them walking into a wall, with no new collision code. Turrets are solid the same way.
+    // Hazards are the same deadly cells the procedural levels scatter, and blade lanes are read back
+    // in SpawnOneSawblade. An elevator cell is the odd one out: it stays plain walkable floor, and
+    // what is built on it is a platform that rides the column and carries the player (see Elevator).
     void PopulateCustomLevel(LevelData data)
     {
         bool hasWallSprite = tileFrames != null && tileFrames.Length > 0;
@@ -487,6 +538,73 @@ public class LevelGrid : MonoBehaviour
                         }
                         break;
 
+                    case LevelTile.SpawnerRight:
+                    case LevelTile.SpawnerDown:
+                    case LevelTile.SpawnerLeft:
+                    case LevelTile.SpawnerUp:
+                        // Solid, so it reuses the already-painted trick the walls do: a turret is a
+                        // block that happens to shoot, and the player bumps off it. The art is drawn
+                        // muzzle-up, so it is turned by the angle from +y round to its facing.
+                        painted[x, y] = true;
+                        Vector2Int aim = LevelData.SpawnerFacing(data.Get(x, y));
+                        var facing = new Vector2(aim.x, aim.y);
+
+                        GameObject turret = PlaceSprite($"Spawner_{x}_{y}", SpawnerSprite,
+                                                        new Vector2Int(x, y), sortingOrder + 1);
+                        if (turret != null)
+                            turret.transform.rotation =
+                                Quaternion.Euler(0f, 0f, Vector2.SignedAngle(Vector2.up, facing));
+                        else
+                        {
+                            // No turret art — mark the cell so it still reads as solid, and give the
+                            // spawner a bare object to live on so the level still shoots.
+                            if (hasWallSprite) tiles[x, y].sprite = tileFrames[tileFrames.Length - 1];
+                            else tiles[x, y].color = hotColor;
+                            turret = new GameObject($"Spawner_{x}_{y}");
+                            turret.transform.SetParent(transform, false);
+                            turret.transform.position = CellToWorld(x, y);
+                        }
+
+                        var gun = turret.AddComponent<BulletSpawner>();
+                        gun.grid = this;
+                        gun.target = player;
+                        gun.direction = facing;
+                        gun.frames = ProjectileFrames;
+                        gun.fps = projectileFps;
+                        gun.speed = data.bulletSpeed;
+                        gun.interval = data.fireInterval;
+                        gun.cellSize = cellSize;
+                        gun.sortingOrder = sawbladeSortingOrder;
+                        break;
+
+                    case LevelTile.Elevator:
+                        // The cell itself stays ordinary walkable floor — what the designer painted
+                        // is where a platform STARTS. It then rides the whole column, and carries
+                        // the player while they stand on it. Drawn just above the tiles so the
+                        // player, who sorts above both, is visibly standing on top of it.
+                        Sprite[] car = ElevatorFrames;
+                        if (car != null && car.Length > 0)
+                        {
+                            GameObject lift = PlaceSprite($"Elevator_{x}_{y}", car[0],
+                                                          new Vector2Int(x, y), sortingOrder + 1);
+                            if (lift != null)
+                            {
+                                SpriteFlipbook scroll = lift.AddComponent<SpriteFlipbook>();
+                                scroll.frames = car;
+                                scroll.fps = elevatorFps;
+
+                                Elevator ride = lift.AddComponent<Elevator>();
+                                ride.grid = this;
+                                ride.target = player;
+                                ride.speed = data.liftSpeed;
+                                ride.minY = origin.y;
+                                ride.maxY = origin.y + (height - 1) * cellSize;
+                                ride.rideHalfX = 0.5f * cellSize;
+                                ride.rideHalfY = 0.5f * cellSize;
+                            }
+                        }
+                        break;
+
                     case LevelTile.Water:
                         // Deadly like a hazard — the player drowns — but it fills the whole cell and
                         // ripples. Every pool is built in this one loop, so their flipbooks all start
@@ -521,6 +639,27 @@ public class LevelGrid : MonoBehaviour
         PlaceSprite("EndMarker", endMarkerSprite, goalCell, sortingOrder + 1);
     }
 
+    // Where a bullet fired by a turret runs out of level: past the edge of the board, or inside a
+    // cell the designer made solid. The player's own red trail is deliberately NOT counted — the
+    // trail grows as they walk, and bullets dying on it would rewrite the level's firing lines
+    // underneath them mid-run.
+    public bool StopsBullet(Vector3 world)
+    {
+        Vector2Int c = WorldToCell(world);
+        if (!InBounds(c)) return true;
+        return customLevel != null && LevelData.IsSolid(customLevel.Get(c.x, c.y));
+    }
+
+    // Called by an Elevator that moved the player this frame. The displacement is folded into the
+    // player's validated position in LateUpdate BEFORE the red-tile test rather than after, so a
+    // ride is never mistaken for a step back onto their own trail — which is exactly what makes a
+    // lift the one way back across it.
+    public void CarryPlayer(Vector3 delta)
+    {
+        carryDelta += delta;
+        carried = true;
+    }
+
     // Marks the four orthogonal neighbours of a cell as used (in-bounds only) so obstacle placement
     // skips them — used to keep the immediate area around the start and goal clear.
     void ReserveNeighbors(Vector2Int c)
@@ -543,15 +682,34 @@ public class LevelGrid : MonoBehaviour
         if (tiles == null || player == null) return;
         if (GameOverManager.Instance != null && GameOverManager.Instance.HasEnded) return;
 
-        // First frame (and after a scene reload): latch where the player started.
+        // First frame (and after a scene reload): latch where the player started. Any carry banked
+        // before this point is already baked into that position, so it is dropped rather than
+        // counted a second time in step 0 — a player who spawns standing on a lift would otherwise
+        // start one frame of travel ahead of it.
         if (!playerTracked)
         {
             lastValidPos = player.position;
             currentCell = WorldToCell(player.position);
             playerTracked = true;
+            carryDelta = Vector3.zero;
+            carried = false;
         }
 
         Vector3 now = player.position; // where PlayerController just moved the player to
+
+        // 0. An elevator carrying the player moved the ground under them, so its displacement is
+        //    part of the baseline the rest of this method compares against rather than a move to be
+        //    judged. Consumed here whether or not anything used it, so it never leaks into the next
+        //    frame; `ridden` keeps the answer for step 6.
+        bool ridden = carried;
+        if (ridden)
+        {
+            lastValidPos += carryDelta;
+            Vector2Int rideCell = WorldToCell(lastValidPos);
+            if (InBounds(rideCell)) currentCell = rideCell;
+        }
+        carryDelta = Vector3.zero;
+        carried = false;
 
         // 1. Keep the player inside the grid (its edge bumps the border).
         if (clampPlayerToGrid)
@@ -591,8 +749,10 @@ public class LevelGrid : MonoBehaviour
             return;
         }
 
-        // 6. Paint the tile red — from now on it is a wall the player can't re-enter.
-        Paint(c);
+        // 6. Paint the tile red — from now on it is a wall the player can't re-enter. Riding an
+        //    elevator paints nothing: a lift is meant to be a way back through a level, and one
+        //    that sealed its own column behind it on the first trip would only ever work once.
+        if (!ridden) Paint(c);
     }
 
     // Per-axis movement validation: a move is allowed only if its destination cell is the one
